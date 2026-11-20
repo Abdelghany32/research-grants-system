@@ -1,0 +1,40 @@
+DATABASE SECURITY AUDIT - 2026-11-17T20:42:39Z (UTC) - database grants, 18.7
+
+== accounts and authentication
+PASS  the only superuser is postgres (reachable by local peer authentication only)
+PASS  no role other than postgres can create roles, databases or replicate
+PASS  only the backup account bypasses row-level security (pg_dump must read everything)
+PASS  every login role has a SCRAM-SHA-256 verifier, none is MD5 or plain
+PASS  every application login role has a connection limit
+PASS  the schema owner cannot log in (NOLOGIN)
+PASS  server enforces SCRAM for new passwords
+PASS  TLS is on and at least TLS 1.2
+PASS  pg_hba.conf ends with a reject-all rule and has no 'trust' or 'md5' line
+PASS  all remote rules require SSL (hostssl) and a local network
+
+== privileges
+PASS  PUBLIC has no privilege on the schema, the database objects or the public schema
+PASS  PUBLIC holds no table privilege in the schema
+PASS  PUBLIC can execute no function in the schema
+PASS  one owner for every table, view and sequence (grants_owner)
+PASS  the web account has no privilege on audit, identity, credential or key tables
+PASS  the web account cannot read password hashes or TOTP secrets
+PASS  the web account cannot write decisions or budgets directly (only record_decision())
+PASS  nobody can UPDATE or DELETE audit events, owner included (append-only triggers on UPDATE/DELETE and on TRUNCATE)
+
+== row-level security and definer functions
+PASS  row-level security is enabled on every table that holds business records
+PASS  RLS with no policy (deny by default) on the tables reached through functions only
+PASS  the 18 policies are in place (decisions 3, grant_calls 3, proposals 7, reviews 5)
+PASS  every SECURITY DEFINER function pins its search_path
+PASS  every table has a primary key
+PASS  money columns are numeric, never floating point
+
+== data protection and monitoring
+PASS  data checksums are on (silent page corruption is detected)
+PASS  sensitive columns hold ciphertext or hashes, never clear text (format check)
+PASS  connections and disconnections are logged
+PASS  pgaudit is loaded
+PASS  pgaudit logs everything for the superuser and the schema owner
+
+SUMMARY: 29 checks passed, 0 failed

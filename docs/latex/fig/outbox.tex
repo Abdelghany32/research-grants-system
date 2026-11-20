@@ -1,0 +1,14 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[box,minimum width=2.6cm] (b) at (1.4,1.2) {business transaction\\assign, submit review,\\record decision};
+\node[boxi,minimum width=3.4cm] (n) at (5.8,1.2) {\texttt{notify\_enqueue(kind, id)}\\verified token; only about\\the actor's own action};
+\node[boxg,minimum width=3.6cm] (o) at (10.4,1.2) {outbox \texttt{notifications}\\fixed template, recipient\\chosen by the database};
+\node[box,minimum width=3.0cm] (w) at (14.6,1.2) {notifier service\\\texttt{grants\_notifier}\\every minute};
+\foreach \p/\q in {b/n,n/o,o/w} {\draw[arr] (\p)--(\q);}
+\node[cp] at (3.65,1.75) {same transaction};
+\node[boxg,minimum width=3.3cm] (f) at (12.4,-0.9) {.eml file in logs/outbox\\(default transport)};
+\node[box,minimum width=3.6cm] (m) at (16.2,-0.9) {SMTP: STARTTLS/TLS with\\certificate check};
+\draw[arr] (w)--(f); \draw[arr] (w)--(m);
+\node[boxa,minimum width=4.0cm] (r) at (5.8,-0.9) {reminders: 48 h before a deadline\\and once overdue\\(\texttt{notify\_enqueue\_reminders})};
+\draw[darr,amber!80] (r)--(o.south west);
+\node[boxr,minimum width=6.8cm] (x) at (7.3,-2.6) {never in a message: proposal title, abstract, amount, score or outcome;\\one message per (kind, subject, recipient); retries up to 5};
+\end{tikzpicture}

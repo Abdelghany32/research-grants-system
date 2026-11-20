@@ -1,0 +1,223 @@
+HARDENING: BEFORE (untouched images) vs AFTER (this project) - 2026-11-17T20:19:56Z (UTC)
+
+######## BEFORE: postgres:18 started with defaults (throw-away container)
+           name           |    setting    
+--------------------------+---------------
+ data_checksums           | on
+ listen_addresses         | *
+ log_connections          | 
+ log_disconnections       | off
+ log_lock_waits           | off
+ log_statement            | none
+ password_encryption      | scram-sha-256
+ row_security             | on
+ ssl                      | off
+ ssl_min_protocol_version | TLSv1.2
+(10 rows)
+
+-- pg_hba.conf (active lines)
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+local   replication     all                                     trust
+host    replication     all             127.0.0.1/32            trust
+host    replication     all             ::1/128                 trust
+host all all all scram-sha-256
+-- login roles
+ rolname  | rolsuper | rolbypassrls | rolcanlogin 
+----------+----------+--------------+-------------
+ postgres | t        | t            | t
+(1 row)
+
+-- PUBLIC may connect to a new database?
+t
+
+######## BEFORE: php:8.5-apache with defaults
+-- loaded Apache modules: 28
+ autoindex_module (shared)  status_module (shared) 
+-- php.ini present: none
+allow_url_fopen => On => On
+display_errors => STDOUT => STDOUT
+expose_php => On => On
+session.cookie_httponly => Off => Off
+session.cookie_samesite => no value => no value
+session.use_strict_mode => Off => Off
+-- worker user: www-data
+ServerTokens OS
+ServerSignature On
+TraceEnable Off
+
+######## AFTER: grants-db
+           name           |    setting    
+--------------------------+---------------
+ data_checksums           | on
+ listen_addresses         | *
+ log_connections          | on
+ log_disconnections       | on
+ log_lock_waits           | on
+ log_statement            | ddl
+ password_encryption      | scram-sha-256
+ row_security             | on
+ ssl                      | on
+ ssl_min_protocol_version | TLSv1.2
+(10 rows)
+
+-- pg_hba.conf (active lines)
+local     all                                               postgres                  peer
+local     grants,grants_test,grants_restore,grants_drill    grants_backup             scram-sha-256
+hostssl   grants,grants_test,grants_restore,grants_drill    grants_app      samenet   scram-sha-256
+hostssl   grants,grants_test,grants_restore,grants_drill    grants_auditor  samenet   scram-sha-256
+hostssl   grants,grants_test,grants_restore,grants_drill    grants_audit_write samenet scram-sha-256
+hostssl   grants,grants_test,grants_restore,grants_drill    grants_notifier samenet   scram-sha-256
+hostssl   grants,grants_test,grants_restore,grants_drill    grants_identity samenet   scram-sha-256
+host      all                                               all             all       reject
+-- login roles
+      rolname       | rolsuper | rolbypassrls | rolcanlogin | rolconnlimit 
+--------------------+----------+--------------+-------------+--------------
+ grants_app         | f        | f            | t           |           30
+ grants_audit_write | f        | f            | t           |           10
+ grants_auditor     | f        | f            | t           |            5
+ grants_backup      | f        | t            | t           |            2
+ grants_identity    | f        | f            | t           |           20
+ grants_notifier    | f        | f            | t           |            3
+ postgres           | t        | t            | t           |           -1
+(7 rows)
+
+-- PUBLIC may connect to grants?
+f
+-- PUBLIC may use schema public in grants?
+f
+-- superuser over the network (password is set, but pg_hba has no network line for it):
+  SQLSTATE[08006] [7] connection to server at "db" (172.18.0.2), port 5432 failed: FATAL: pg_hba.conf rejects connection for host "
+-- connection without TLS:
+  SQLSTATE[08006] [7] connection to server at "db" (172.18.0.2), port 5432 failed: FATAL: pg_hba.conf rejects connection for host "
+-- TLS in use by the application connection:
+  {"ssl":true,"version":"TLSv1.3","cipher":"TLS_AES_256_GCM_SHA384"}
+-- file permissions inside PGDATA
+drwx------ postgres /var/lib/postgresql/18/docker
+-rw------- postgres /var/lib/postgresql/18/docker/server.key
+-rw------- postgres /var/lib/postgresql/18/docker/pg_hba.conf
+-- published ports (db has none; web is loopback only)
+db: 5432/tcp
+identity: 80/tcp
+logship: 
+notifier: 80/tcp
+ops: 80/tcp
+web: 127.0.0.1:8080->80/tcp, 127.0.0.1:8443->443/tcp
+-- sample of the connection log
+grep: (standard input): binary file matches
+2026-11-17 19:41:42.033 [6044] grants_app@grants_test LOG: connection authorized: user=grants_app database=grants_test SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+2026-11-17 19:41:42.035 [6045] grants_app@grants_test LOG: connection authorized: user=grants_app database=grants_test SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+2026-11-17 19:41:42.046 [6046] grants_app@grants_test LOG: connection authorized: user=grants_app database=grants_test SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+2026-11-17 19:41:42.047 [6047] grants_app@grants_test LOG: connection authorized: user=grants_app database=grants_test SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+
+######## AFTER: grants-web
+-- loaded Apache modules: 29
+ headers_module (shared)  ssl_module (shared) 
+allow_url_fopen => Off => Off
+display_errors => Off => Off
+expose_php => Off => Off
+session.cookie_httponly => On => On
+session.cookie_samesite => Lax => Lax
+session.use_strict_mode => On => On
+-- worker user: grantsweb (uid 1000)
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+-- code mounted read-only: Read-only file system
+-- session directory: drwx------ grantsweb
+-- response headers over HTTPS
+HTTP/1.1 200 OK
+Server: Apache
+Strict-Transport-Security: max-age=31536000
+Content-Security-Policy: default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: same-origin
+Cache-Control: no-store, no-cache, must-revalidate
+Set-Cookie: __Host-grants=c8d38f251d61ea631bfd0ec3f7c59104; path=/; secure; HttpOnly; SameSite=Lax
+-- plain HTTP only redirects
+HTTP/1.1 301 Moved Permanently
+Location: https://localhost:8443/login
+-- TLS protocol check
+  tls1_1: refused
+  tls1_2: accepted
+  tls1_3: accepted
+-- files outside the web root are not served
+  GET /../config/config.php        -> 400
+  GET /config/config.php           -> 404
+  GET /src/App.php                 -> 404
+  GET /secrets/web.env             -> 404
+  GET /database/02_schema.sql      -> 404
+  GET /.git/config                 -> 404
+
+######## AFTER: host files
+drwx------ gha32a secrets
+-rw------- gha32a secrets/actor.key
+-rw------- gha32a secrets/backup.env
+-rw------- gha32a secrets/db-ca.crt
+-rw------- gha32a secrets/demo-credentials.txt
+-rw------- gha32a secrets/demo-totp.txt
+-rw------- gha32a secrets/field.key
+-rw------- gha32a secrets/field.key.20261117T144041Z.bak
+-rw------- gha32a secrets/field.key.20261117T144104Z.bak
+-rw------- gha32a secrets/field.key.20261117T144105Z.bak
+-rw------- gha32a secrets/field.key.20261117T193942Z.bak
+-rw------- gha32a secrets/field.key.20261117T193944Z.bak
+-rw------- gha32a secrets/field.key.20261117T194021Z.bak
+-rw------- gha32a secrets/field.key.20261117T194023Z.bak
+-rw------- gha32a secrets/field.key.20261117T194811Z.bak
+-rw------- gha32a secrets/field.key.20261117T194813Z.bak
+-rw------- gha32a secrets/field.key.20261117T201638Z.bak
+-rw------- gha32a secrets/field.key.20261117T201641Z.bak
+drwx------ gha32a secrets/gnupg
+drwx------ gha32a secrets/gnupg.bak-20261117T144206Z
+-rw------- gha32a secrets/gpg-passphrase
+-rw------- gha32a secrets/identity.env
+-rw------- gha32a secrets/notifier.env
+-rw------- gha32a secrets/postgres_password
+drwx------ gha32a secrets/tls
+-rw------- gha32a secrets/web.env
+-rw------- gha32a secrets/tls/server.crt
+-rw------- gha32a secrets/tls/server.key
+-rw------- gha32a backups/grants-20261111T165916Z.dump.gpg
+-rw------- gha32a backups/grants-20261111T165930Z.dump.gpg
+-rw------- gha32a backups/grants-20261111T170159Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T144542Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T144542Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T144619Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T144619Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T144641Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T144641Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T144654Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T144654Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T144841Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T144841Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T150353Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T150353Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T150500Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T150500Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T150544Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T150544Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T152218Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T152218Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T162632Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T162632Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T191843Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T191843Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T193946Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T193946Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T194025Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T194025Z.fieldkey.gpg
+-rw------- gha32a backups/grants-20261117T194815Z.dump.gpg
+-rw------- gha32a backups/grants-20261117T194815Z.fieldkey.gpg
+-- tracked by Git? 66 ignored paths, 0 tracked secret files
+
+######## Patch status (image versions in use; pending Debian updates inside each container)
+postgres (PostgreSQL) 18.7 (Debian 18.7-1.pgdg13+2)
+pending package upgrades: 3
+PHP 8.5.12 (cli) (built: Nov  5 2026 07:20:51) (NTS)
+Server version: Apache/2.4.69 (Debian)
+pending package upgrades: 8
+postgres:18 postgres@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+php:8.5-apache php@sha256:08af36df144462d84c7f16190557eec06cb9f656882685610b712a15eec54d46

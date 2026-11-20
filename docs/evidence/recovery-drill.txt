@@ -1,0 +1,54 @@
+RECOVERY DRILL - 2026-11-17T20:55:55Z (UTC)
+
+== 1. Encrypted backup of the live database
+field-key backup (store apart from the dump): backups/grants-20261117T205555Z.fieldkey.gpg
+-rw------- 1 gha32a gha32a 27067 Nov 17 20:55 backups/grants-20261117T205555Z.dump.gpg
+51101bbe4d1938efabb138ed932c61ffd589b5b5978563b6207ee2b6a358f916  backups/grants-20261117T205555Z.dump.gpg
+file type        : data
+readable without the key? pg_restore says: pg_restore: error: input file does not appear to be a valid tar archive
+plaintext markers in the archive (PGDMP header, a user e-mail, a proposal title): 0 0 0 
+key holders      : drwx------ gha32a secrets/gnupg (private key, this account only)
+encryption       :pubkey enc packet: version 3, algo 18, keyid 8B441811D68B95D1
+private key      : present on this host; file present (secrets/gpg-passphrase) - the key is protected
+field-key backup : backups/grants-20261117T205555Z.fieldkey.gpg (262 bytes, separate file), checksum: OK
+keyring ids in the key backup (ids only, no key material): k7 k1 
+decrypted key backup is IDENTICAL to the live keyring
+
+== 2. First restore into the disposable database grants_drill
+restored backups/grants-20261117T205555Z.dump.gpg into grants_drill in 0.8 seconds
+
+== 3. Simulated loss, on the disposable copy only
+objects destroyed by DROP SCHEMA grants CASCADE: 1 schema + 42
+tables left in grants_drill.grants: 0
+live database untouched, tables in grants.grants: 12
+
+== 4. Timed recovery of grants_drill from the encrypted archive
+restored backups/grants-20261117T205555Z.dump.gpg into grants_drill in 0.8 seconds
+
+== 5. Record values: table, rows, md5 over all rows (source vs restored)
+users         source    6 63952698ead22528e1559b405e678c3e   restored    6 63952698ead22528e1559b405e678c3e   MATCH
+grant_calls   source    2 0759da816c6523a61175771961ff02b7   restored    2 0759da816c6523a61175771961ff02b7   MATCH
+proposals     source    6 a1b3ee940afb57fa6f8f7d6bba40f33c   restored    6 a1b3ee940afb57fa6f8f7d6bba40f33c   MATCH
+reviews       source    4 00474ff3091cc1c34736f64854ff890e   restored    4 00474ff3091cc1c34736f64854ff890e   MATCH
+decisions     source    3 55bceea48c7c0546b56d6f4868f02e32   restored    3 55bceea48c7c0546b56d6f4868f02e32   MATCH
+audit_events  source  101 eace4bc52c5bcd7ded5e13145e80463b   restored  101 eace4bc52c5bcd7ded5e13145e80463b   MATCH
+funds remaining (call, source, restored):
+  1|450000.00 450000.00
+  2|195000.00 195000.00
+
+== 6. Privileges and policies (source vs restored)
+privilege and policy lines: source 41, restored 41
+IDENTICAL: table privileges, column privileges and RLS policies
+
+== 7. Behaviour of the restored database under the restricted accounts
+restored database: grants_drill, runtime account: grants_app
+PASS  RESTORE row-level security is active: no identity, no rows
+PASS  RESTORE researchers still see only their own proposals
+PASS  RESTORE privileges came back with the data
+PASS  RESTORE guard triggers are back (decisions final, audit append-only)
+PASS  RESTORE identity binding, audit separation, second factor and outbox came back too
+PASS  RESTORE funds remaining and the awarded decision have the expected values
+PASS  RESTORE encrypted review comments decrypt with the separately stored key
+PASS  RESTORE an authorized user can sign in and work against the restored database
+8 checks, 28 assertions, 0 failed
+verification exit code: 0

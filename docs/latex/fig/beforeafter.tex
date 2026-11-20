@@ -1,0 +1,22 @@
+\begin{tikzpicture}[font=\scriptsize]
+% panel F03
+\node[hd,anchor=west] at (0,3.6) {F03  median failed-login time (ms)};
+\foreach \y/\w/\l/\c in {2.75/252/{unknown 251.8}/danger,2.3/254/{unlocked 254.4}/danger,1.85/28/{locked 28.0}/danger,1.15/151.6/{unknown 151.6}/okgreen,0.7/147.8/{unlocked 147.8}/okgreen,0.25/148.7/{locked 148.7}/okgreen}
+ {\fill[\c!70] (0,\y) rectangle ({\w*0.0105},\y+0.36); \node[anchor=west,font=\tiny] at ({\w*0.0105+0.08},\y+0.18) {\l};}
+\node[cp,anchor=west] at (0.0,-0.25) {red: 11 Nov (ratio 9.1) $\cdot$ green: 17 Nov (ratio 1.03)};
+% panel F04
+\node[hd,anchor=west] at (8.4,3.6) {F04  30 rapid attempts, 30 accounts};
+\fill[danger!70] (8.4,2.75) rectangle ({8.4+30*0.12},3.11); \node[anchor=west,font=\tiny] at ({8.4+3.6+0.08},2.93) {before: 30 processed};
+\fill[okgreen!70] (8.4,2.1) rectangle ({8.4+20*0.12},2.46); \fill[amber!80] ({8.4+20*0.12},2.1) rectangle ({8.4+30*0.12},2.46);
+\node[anchor=west,font=\tiny] at ({8.4+3.6+0.08},2.28) {after: 20 processed, 10 refused (429)};
+\node[hd,anchor=west] at (8.4,1.35) {F05  response headers};
+\node[font=\tiny,anchor=west] at (8.4,0.95) {before: CSP, HSTS, nosniff, frame deny, referrer};
+\node[font=\tiny,anchor=west,text=okgreen] at (8.4,0.6) {after: + Permissions-Policy, COOP, CORP};
+% panel F02/F01
+\node[hd,anchor=west] at (0,-1.0) {F02  five anonymous failures against one account};
+\node[boxr,minimum width=3.4cm,font=\tiny] at (1.8,-1.85) {before: account locked 15 min\\for everybody, owner too};
+\node[boxg,minimum width=3.9cm,font=\tiny] at (5.9,-1.85) {after: attacker's address locked;\\owner's other address open};
+\node[hd,anchor=west] at (8.4,-1.0) {F01  allocation invariant, total $-$ remaining $-$ awards};
+\node[boxr,minimum width=3.4cm,font=\tiny] at (10.1,-1.85) {before: $-$1.00 (lone decision\\committed, balance unchanged)};
+\node[boxg,minimum width=3.9cm,font=\tiny] at (14.2,-1.85) {after: lone insert 42501; the\\single door keeps it at 0.00};
+\end{tikzpicture}

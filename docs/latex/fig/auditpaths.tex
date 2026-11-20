@@ -1,0 +1,15 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[box,minimum width=3.6cm] (w) at (2.0,2.0) {web account\\\texttt{grants\_app}\\(no privilege on \texttt{audit\_events})};
+\node[box,minimum width=3.6cm] (a) at (2.0,-0.3) {audit-writer account\\\texttt{grants\_audit\_write}\\(no table privilege at all)};
+\node[boxi,minimum width=4.4cm,minimum height=1.5cm] (f) at (8.0,0.85) {\texttt{audit\_append(}action, resource, outcome, details,\\request id, address, named actor, token\texttt{)}\\SECURITY DEFINER; the role is read from \texttt{users}};
+\node[boxg,minimum width=3.8cm] (v) at (14.1,2.0) {\textbf{actor\_verified = true}\\valid token for the named actor\\(success events, refusals of\\signed-in users, sign-ins)};
+\node[boxa,minimum width=3.8cm] (u) at (14.1,-0.3) {\textbf{actor\_verified = false}\\named, not proved: failed\\sign-ins, throttle, CSRF rejections\\(only \texttt{auth.*}, \texttt{request.*} or denials)};
+\draw[arr] (w.east) -| node[lbl,above,pos=0.2]{token required} (f.north);
+\draw[arr] (a.east) -| node[lbl,above,pos=0.2]{token optional} (f.south);
+\draw[garr] (f.north east) -- (v.west);
+\draw[arr,amber!80] (f.south east) -- (u.west);
+\node[boxr,text width=6.2cm] (x) at (8.0,-2.7) {refused (42501): an event with no valid token from the web account;\\a verified event for another actor; a success event for a decision\\without proof; any UPDATE, DELETE or TRUNCATE};
+\draw[rarr] (f.south)--(x.north);
+\node[box,minimum width=3.8cm] (rd) at (14.6,-2.7) {\texttt{record\_decision()} writes its\\own verified event in the award\\transaction};
+\node[cp,text width=3.5cm] at (2.0,-2.7) {the auditor reads the view and\\the CSV export; unverified\\events are marked in the UI};
+\end{tikzpicture}

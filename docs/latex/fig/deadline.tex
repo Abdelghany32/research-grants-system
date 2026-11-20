@@ -1,0 +1,9 @@
+\begin{tikzpicture}[font=\scriptsize]
+\draw[->,thick,draw=ink!70] (0,0) -- (15.8,0);
+\foreach \x/\t in {1.0/{review assigned\\(due date must be\\in the future)},7.4/{due\_at},12.6/{officer extends\\(forwards only)}} {\draw[thick] (\x,-0.15)--(\x,0.15); \node[cp,below=2mm] at (\x,-0.15) {\t};}
+\fill[okgreen!25] (1.0,0.25) rectangle (7.4,0.75); \node at (4.2,0.5) {save and submit allowed};
+\fill[danger!22] (7.4,0.25) rectangle (12.6,0.75); \node at (10.0,0.5) {closed: refused by the guard (23514)};
+\fill[okgreen!25] (12.6,0.25) rectangle (15.6,0.75); \node at (14.1,0.5) {open again};
+\node[boxi,minimum width=7.2cm] at (3.8,2.0) {only a grants officer can change \texttt{due\_at}, only later,\\nothing else in the same statement; officers cannot edit a review};
+\node[boxa,minimum width=6.4cm] at (11.8,2.0) {application: \texttt{Denied(review\_overdue)} with a clear message;\\the database refuses it again whatever the code does};
+\end{tikzpicture}

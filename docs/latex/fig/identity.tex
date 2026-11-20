@@ -1,0 +1,21 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[hd,anchor=west] at (0,3.3) {A  The web process: it holds \texttt{secrets/actor.key}};
+\node[box,minimum width=2.5cm] (s) at (1.25,2.2) {Server-side session\\\texttt{user\_id}};
+\node[boxi,minimum width=5.4cm] (t) at (6.4,2.2) {\texttt{ActorToken::mint(id)} $\cdot$ 120 s\\\texttt{v1.<id>.<expiry>.<nonce>.<HMAC-SHA256>}};
+\node[box,minimum width=3.7cm] (a) at (12.9,2.2) {\texttt{Database::asActor()}: BEGIN;\\\texttt{set\_config('app.actor', token, true)}};
+\foreach \p/\q in {s/t,t/a} {\draw[arr] (\p)--(\q);}
+\draw[zone,draw=indigo!60] (-0.45,3.0) rectangle (12.6,1.35);
+\node[hd,anchor=west] at (0,0.75) {B  PostgreSQL: it verifies the proof itself};
+\node[boxi,minimum width=4.0cm] (v) at (2.4,-0.45) {\texttt{actor\_verify\_token()}\\recompute HMAC with the owner-only\\\texttt{actor\_key}; check expiry $\le$ 600 s};
+\node[box,minimum width=3.4cm] (r) at (7.3,-0.45) {\texttt{current\_actor\_id()}\\\texttt{current\_actor\_role()}\\role read from \texttt{users}};
+\node[box,minimum width=3.3cm] (p) at (11.4,-0.45) {RLS policy \texttt{USING (...)}\\\texttt{owner\_id =}\\\texttt{current\_actor\_id()}};
+\node[boxg,minimum width=2.6cm] (o) at (14.6,-0.45) {rows the actor\\may see or write};
+\foreach \p/\q in {v/r,r/p,p/o} {\draw[arr] (\p)--(\q);}
+\draw[arr] (12.9,1.35) -- (2.4,0.15);
+\node[hd,anchor=west,text=danger] at (0,-1.8) {C  An attacker who holds only the database password};
+\node[boxr,minimum width=4.9cm] (x) at (2.9,-2.9) {sets \texttt{app.user\_id} (old claim) or signs\\a token with a key of their own};
+\node[boxr,minimum width=5.4cm] (y) at (9.6,-2.9) {token invalid $\rightarrow$ no identity $\rightarrow$ role NULL\\every policy false: \textbf{0 rows}, \texttt{record\_decision()} refused (42501)};
+\draw[rarr] (x)--(y);
+\node[boxa,minimum width=3.9cm] (z) at (9.6,-4.2) {residual: a full compromise\\of the web process holds\\the key (accepted)};
+\draw[darr,amber!80] (y.south)--(z.north);
+\end{tikzpicture}

@@ -1,0 +1,122 @@
+PHP 8.5.12, PostgreSQL 18.7 (Debian 18.7-1.pgdg13+2), database grants_test, account grants_app
+
+--- 01_auth_test.php
+PASS  AUTH passwords are stored as Argon2id hashes, never plaintext
+PASS  AUTH runtime account cannot read the password_hash column
+PASS  AUTH wrong password gets a generic message and a denied audit event
+PASS  AUTH login regenerates the session ID and sets a HttpOnly SameSite cookie
+PASS  AUTH session cookie is Secure and __Host- prefixed over HTTPS (Apache)
+PASS  AUTH logout ends the session
+PASS  AUTH session expires after inactivity
+PASS  AUTH five failures lock the (account, address) pair, even for the correct password
+PASS  AUTH a stranger cannot lock the real owner out (finding F02 remediated)
+PASS  AUTH a source address that keeps failing is throttled before any hashing (finding F04 remediated)
+PASS  AUTH unknown, wrong-password and locked answers cost the same hashing work (finding F03 remediated)
+PASS  AUTH the HTTP login answers 429 with Retry-After when the source is throttled
+PASS  AUTH security headers include Permissions-Policy (finding F05 remediated)
+PASS  AUTH state-changing request without a CSRF token is rejected
+PASS  AUTH user-supplied text is escaped on output
+--- 02_rbac_test.php
+PASS  RBAC runtime account is not owner, not superuser, cannot bypass RLS
+PASS  RBAC runtime account is refused everything outside its needs
+PASS  RBAC auditor account reads the audit view and nothing else
+PASS  RBAC backup account cannot connect over the network
+PASS  RBAC human-role permission matrix
+PASS  RBAC each role is refused the other roles' pages (HTTP 403, audited)
+PASS  RBAC workflow operations refuse the wrong role even when called directly
+--- 03_rls_test.php
+PASS  RLS a connection with no identity sees nothing and can write nothing (fails closed)
+PASS  RLS an unknown or inactive user id sees nothing
+PASS  RLS researchers A and B each see only their own proposals, in successive requests
+PASS  RLS a reused connection does not carry the previous actor
+PASS  RLS the application cannot grant itself a role through a session variable
+PASS  RLS an unassigned reviewer cannot read the proposal or the review
+PASS  RLS drafts are private to their author; reviews are hidden from applicants
+PASS  RLS lists, search and counts stay inside the permitted rows
+PASS  RLS search with an apostrophe returns only authorized records (injection regression)
+--- 04_workflow_test.php
+PASS  FLOW one grant end to end, with each boundary checked on the way
+PASS  FLOW the same journey works through the web forms
+PASS  FLOW submission is refused after the deadline (PHP and PostgreSQL)
+PASS  FLOW self-review is blocked (PHP and PostgreSQL)
+PASS  FLOW illegal state changes are refused by the database itself
+PASS  DATA review comments are encrypted at rest and bound to their row
+PASS  DATA key management: key ids, rotation without a flag day, legacy values, tampered headers
+--- 05_award_test.php
+PASS  AWARD two proposals compete for the same funds: one award, 3,000 remains
+PASS  AWARD a duplicate click produces one decision and one deduction
+PASS  AWARD the second decision really waits on the call lock (deterministic)
+PASS  AWARD limits: requested amount, remaining budget, sequential repeat
+PASS  AWARD finding F01 remediated: the runtime account cannot commit part of an award
+PASS  AWARD record_decision() itself refuses anyone who is not an active officer, and an unknown actor
+PASS  AWARD record_decision() is atomic and audited by the database itself
+PASS  AWARD database backstops: unique decision, balance never rises or goes negative (as schema owner)
+PASS  AWARD invariant: for every call, remaining = total - sum of approved awards
+--- 06_audit_test.php
+PASS  AUDIT a denied action is recorded although its transaction rolled back
+PASS  AUDIT a success event commits or rolls back together with its change
+PASS  AUDIT events carry actor, UTC time, action, resource, outcome and a correlation ID
+PASS  AUDIT no proposal text or review comment ever enters the audit trail
+PASS  AUDIT auditor timeline page filters by outcome and shows no content
+--- 07_identity_test.php
+PASS  IDENT a forged, expired, altered or legacy identity claim yields no identity at all
+PASS  IDENT a stolen database password cannot act as an officer or move money (O02)
+PASS  IDENT the web account cannot write audit events; a token is required and must match the named actor (O03)
+PASS  IDENT the audit-writer account can record only unauthenticated events and refusals, and nothing else
+PASS  IDENT events written by the application say whether their actor was proved
+--- 08_deadlines_test.php
+PASS  DEADLINE a reviewer cannot save or submit after the due date (application and database)
+PASS  DEADLINE only a grants officer can move a deadline, only forwards, and nothing else changes with it
+PASS  DEADLINE an assignment cannot be created with a deadline in the past
+--- 09_export_test.php
+PASS  EXPORT the auditor downloads the filtered timeline as a CSV file
+PASS  EXPORT other roles and anonymous visitors are refused (403 audited, redirect)
+PASS  EXPORT cells that a spreadsheet would execute are neutralised
+--- 10_mfa_test.php
+PASS  MFA the TOTP implementation matches the RFC 6238 test vectors
+PASS  MFA an officer or auditor is not signed in by the password alone
+PASS  MFA a wrong code is refused, a right one signs in, and both are audited
+PASS  MFA a one-time code works once when replay protection is on
+PASS  MFA too many wrong codes abandon the sign-in and count toward the lockout
+PASS  MFA first sign-in forces enrolment: setup key, encrypted secret, recovery codes shown once
+PASS  MFA a stolen database password cannot enrol, read, replay or reset anyone's second factor
+PASS  MFA the second-factor form needs a CSRF token
+--- 11_notifications_test.php
+PASS  MAIL the workflow queues messages for the right people, in the same transaction
+PASS  MAIL the database addresses and words every message: callers cannot choose, forge or repeat one
+PASS  MAIL the notifier account can deliver mail and nothing else
+PASS  MAIL delivery marks messages sent once, retries failures, and writes safe .eml files
+PASS  MAIL header injection is refused and addresses are validated
+PASS  MAIL the SMTP client speaks the protocol, dot-stuffs, and refuses unencrypted credentials
+PASS  MAIL due-date reminders are queued once, to the reviewer and the officer, and carry no details
+--- 12_identity_split_test.php
+PASS  SPLIT the identity service refuses unsigned, mis-signed, stale and malformed calls
+PASS  SPLIT sessions are opaque handles; the database holds only a hash and encrypted data
+PASS  SPLIT a front end can only be given a token for the user of the session it holds
+PASS  SPLIT a front end cannot make the identity service vouch for someone: verified events need a live session of that user
+PASS  SPLIT every database account sees only what its job needs
+PASS  SPLIT the web front end process cannot reach the identity secrets at all
+--- 13_webauthn_test.php
+PASS  WEBAUTHN the CBOR decoder reads what it should and refuses what it must
+PASS  WEBAUTHN registration and sign-in ceremonies are verified, and each defect is refused
+PASS  WEBAUTHN an officer registers a key and then signs in with it
+PASS  WEBAUTHN replayed, wrong and cloned responses are refused and counted
+PASS  WEBAUTHN a key belongs to one person, can be removed, and is closed to the web account
+
+89 tests, 968 assertions, 0 failed
+--- owner_guards.sql
+PASS  OWNER a second decision on a decided proposal is refused (guard) (SQLSTATE 23514)
+PASS  OWNER a decision without a completed review is refused (guard) (SQLSTATE 23514)
+PASS  OWNER a decline with a non-zero award is refused (CHECK) (SQLSTATE 23514)
+PASS  OWNER a decision is pinned to the proposal currency by a composite foreign key (definition checked)
+PASS  OWNER the balance can never be raised (trigger) (SQLSTATE 23514)
+PASS  OWNER the balance can never go negative (constraint) (SQLSTATE 23514)
+PASS  OWNER the total budget is immutable (trigger) (SQLSTATE 23514)
+PASS  OWNER approved without a decision row is refused (trigger) (SQLSTATE 23514)
+PASS  OWNER the in-database HMAC-SHA256 matches the RFC 4231 test vector (actor tokens are verified with it)
+PASS  OWNER the HMAC handles keys longer than the block size (RFC 4231 test case 6)
+PASS  OWNER audit events cannot be updated, even by the owner (SQLSTATE 42501)
+PASS  OWNER audit events cannot be deleted, even by the owner (SQLSTATE 42501)
+PASS  OWNER audit events cannot be truncated, even by the owner (SQLSTATE 42501)
+13 owner-level guard checks, 0 failed
+exit code: 0

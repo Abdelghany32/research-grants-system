@@ -1,0 +1,25 @@
+\begin{tikzpicture}[font=\scriptsize,
+ ent/.style={draw=indigo!70,rounded corners=2pt,fill=codebg,align=left,inner sep=3pt,minimum width=4.1cm},
+ card/.style={font=\tiny\bfseries,text=indigo,fill=white,inner sep=1pt}]
+\node[ent] (u) at (2.3,2.8) {\textbf{users}\\{\tiny PK id; email (unique); role; is\_active}\\{\tiny password\_hash; locked\_until (admin lock)}\\{\tiny totp\_secret\_enc (encrypted); totp\_last\_step}};
+\node[ent] (c) at (8.0,2.8) {\textbf{grant\_calls}\\{\tiny PK id; currency; total\_budget}\\{\tiny remaining\_budget; FK created\_by $\rightarrow$ users}};
+\node[ent] (p) at (13.7,2.8) {\textbf{proposals}\\{\tiny PK id; FK call\_id, owner\_id $\rightarrow$ users}\\{\tiny FK (call\_id, currency); amount; status}};
+\node[ent] (d) at (8.0,0.0) {\textbf{decisions}\\{\tiny PK id; proposal\_id UNIQUE; outcome}\\{\tiny FK (proposal, currency); decided\_by $\rightarrow$ users}};
+\node[ent] (r) at (13.7,0.0) {\textbf{reviews}\\{\tiny PK id; UNIQUE (proposal, reviewer)}\\{\tiny reviewer\_id, assigned\_by $\rightarrow$ users; comments\_enc}\\{\tiny due\_at (guarded: officers extend, forwards only)}};
+\node[ent] (a) at (2.3,0.0) {\textbf{audit\_events}\\{\tiny PK id; actor\_id; action; outcome}\\{\tiny correlation\_id; source\_ip; details (jsonb)}\\{\tiny actor\_verified (proved or only named)}};
+\node[ent] (l) at (2.3,-2.3) {\textbf{login\_failures}\\{\tiny PK id; user\_id (null if unknown)}\\{\tiny source\_ip; occurred\_at}};
+\node[ent] (n) at (8.0,-2.3) {\textbf{notifications} (outbox)\\{\tiny PK id; FK to\_user\_id $\rightarrow$ users; kind}\\{\tiny subject, body (fixed templates); sent\_at; attempts}};
+\node[ent] (m) at (13.7,-2.3) {\textbf{mfa\_recovery\_codes}\\{\tiny PK id; FK user\_id $\rightarrow$ users}\\{\tiny code\_hash (Argon2id); used\_at}};
+\node[ent] (k) at (2.3,-4.6) {\textbf{actor\_key}\\{\tiny single row; secret (HMAC key)}\\{\tiny readable by the schema owner only}};
+\draw[dashed] (d.south) -- node[card,right,pos=0.4]{queues (function)} (n.north);
+\draw[dashed] (r.south) -- node[card,right]{enrols (function)} (m.north);
+\draw (u) -- node[card,above]{creates 1:N} (c);
+\draw (c) -- node[card,above]{receives 1:N} (p);
+\draw (u.north) -- ++(0,0.7) -| (p.north) node[pos=0.25,card,above]{owns (1 to N)};
+\draw (p.south) -- node[card,right]{evaluated by (1 to N)} (r.north);
+\draw (p.south west) -- node[card,above,sloped,pos=0.45]{ends with 0..1} (d.north east);
+\draw[dashed] (u.south) -- node[card,right]{acts (0..1 to N)} (a.north);
+\draw[dashed] (a.south) -- node[card,right]{} (l.north);
+\draw[dashed] (u.west) -- ++(-0.35,0) |- (l.west) node[pos=0.5,card,rotate=90,above,font=\tiny]{failed sign-ins};
+\node[font=\tiny,text=slate,anchor=north west,align=left] at (6.6,-3.6) {solid: structural relationships (foreign keys, 1 to N unless noted)\\dashed: written by SECURITY DEFINER functions or the audit writer\\a currency mismatch is impossible: composite foreign keys pin it\\decisions are created only by \texttt{record\_decision()}};
+\end{tikzpicture}

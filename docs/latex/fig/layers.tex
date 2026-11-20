@@ -1,0 +1,14 @@
+\begin{tikzpicture}[font=\scriptsize]
+\foreach \y/\t/\r/\c in {0/{1  Network and transport}/{TLS 1.2/1.3, no published database port, \texttt{hostssl} + SCRAM, \texttt{verify-full}}/amber,
+ -1.05/{2  PHP application}/{route permission, CSRF token, second factor for officers and auditors, prepared statements, escaped output}/indigo,
+ -2.1/{3  Proof of identity}/{signed actor token verified by the database; a database password alone yields no identity}/indigo,
+ -3.15/{4  Database account + RLS}/{non-owner, column grants; 18 policies read the verified actor; no identity means no rows}/indigo,
+ -4.2/{5  Guard triggers, constraints}/{state machine, deadlines, currency pin, balance only decreases, one decision; \texttt{record\_decision()} is the only door for money}/indigo,
+ -5.25/{6  Evidence and recovery}/{audit only through \texttt{audit\_append()}, separate audit writer, encrypted backups, verified restore}/okgreen}
+ {\node[draw=\c!70,fill=\c!9,rounded corners=3pt,minimum width=4.7cm,minimum height=0.85cm,anchor=west,font=\scriptsize\bfseries] at (1.6,\y) {\t};
+  \node[anchor=west,text width=9.5cm,font=\scriptsize] at (6.45,\y) {\r};}
+\draw[arr,thick,danger!80] (1.05,0.45) -- (1.05,-5.7);
+\node[lbl,rotate=90] at (1.05,-2.6) {a request must pass every layer};
+\node[boxr,minimum width=1.2cm] at (0.75,-6.3) {data};
+\draw[arr,danger!80] (1.05,-5.7) -- (0.85,-6.0);
+\end{tikzpicture}

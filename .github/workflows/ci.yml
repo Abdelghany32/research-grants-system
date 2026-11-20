@@ -1,0 +1,107 @@
+name: CI
+
+# Runs the project's own verification on every push and pull request: syntax checks, the full test suite against real
+# PostgreSQL, the SQL-injection lab, the black-box penetration checks, the retest of the remediated findings, and the
+# backup -> loss -> restore drill. Nothing here uses repository secrets: the stack generates its own throw-away secrets.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Syntax and hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell scripts
+        run: |
+          for f in scripts/*.sh; do bash -n "$f"; done
+      - name: Python and JavaScript
+        run: |
+          python3 -m py_compile scripts/*.py scripts/pentest/*.py
+          node --check scripts/screenshots.mjs
+      - name: PHP (official php:8.5-cli image)
+        run: |
+          docker run --rm -v "$PWD":/app -w /app php:8.5-cli sh -c \
+            'find src config templates public scripts tests -name "*.php" -print0 | xargs -0 -n1 php -l > /dev/null'
+      - name: GitHub workflows are valid YAML
+        run: python3 -c "import sys, yaml; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" .github/workflows/*.yml .github/dependabot.yml
+      - name: No secrets, backups or logs are tracked
+        run: |
+          leaked="$(git ls-files secrets backups logs | grep -v '\.gitkeep$' || true)"
+          if [ -n "$leaked" ]; then echo "tracked secret-like files:"; echo "$leaked"; exit 1; fi
+
+  verify:
+    name: Tests, labs, pentest retest, recovery drill
+    runs-on: ubuntu-latest
+    needs: lint
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools the scripts expect
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bc curl openssl gnupg > /dev/null
+      - name: Set up the stack (secrets, images, roles, schema, seed, two-step demo accounts)
+        run: scripts/setup.sh
+      - name: Integration test suite (real PostgreSQL)
+        run: scripts/test.sh
+      - name: Controlled SQL-injection lab (before, impact, after)
+        run: scripts/sqli-demo.sh
+      - name: Black-box penetration checks against the running lab
+        run: scripts/pentest.sh
+      - name: Retest of findings F02-F05
+        run: python3 scripts/pentest/retest-auth.py > /tmp/retest-auth.json && python3 .github/scripts/check_retest.py /tmp/retest-auth.json
+      - name: Retest of F01, O02 and O03 at database level
+        run: |
+          docker compose --profile ops up -d --no-recreate ops && docker compose exec -T -u grantsweb -e DB_NAME=grants_test -e PENTEST_LAB=1 ops php scripts/pentest/deep-db.php > /tmp/deep-db.json
+          python3 .github/scripts/check_retest.py /tmp/deep-db.json
+      - name: Second incident (stolen service credential) is contained
+        run: scripts/incident-privileged.sh
+      - name: Process isolation (web front end, identity service, notifier hold only their own secrets)
+        run: scripts/check-isolation.sh
+      - name: Database security audit (catalog-level checks)
+        run: scripts/check-db-security.sh
+      - name: Audit and log shipping (pgaudit records reach a tamper-evident archive)
+        run: scripts/check-logship.sh
+      - name: Third incident (compromised web front end)
+        run: scripts/incident-frontend.sh
+      - name: Backup, simulated loss, restore, verification
+        run: |
+          scripts/incident-demo.sh
+          scripts/recovery-drill.sh
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence
+          path: |
+            docs/evidence/*.txt
+            docs/evidence/pentest-after/
+          retention-days: 14
+      - name: Service logs (on failure)
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+  image:
+    name: Web image build and patch status
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the hardened web image with freshly pulled base layers
+        run: docker build --pull -t grants-web:ci docker/web
+      - name: "Report pending package upgrades (informational, base images move daily)"
+        run: |
+          docker run --rm --user root grants-web:ci sh -c 'apt-get update -qq && apt-get -s upgrade | grep "^Inst" || echo "no pending upgrades"' | tee /tmp/pending.txt
+          echo "pending package upgrades: $(grep -c '^Inst' /tmp/pending.txt || true)" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,17 @@
+\begin{tikzpicture}[font=\scriptsize]
+\def\xb{0.95}\def\xk{4.1}\def\xg{7.5}\def\xp{11.5}\def\xa{15.35}
+\foreach \x/\n in {\xb/Browser,\xk/Kernel,\xg/GrantWorkflow,\xp/{PostgreSQL\\record\_decision()},\xa/{AuditLog\\(2nd connection)}}
+ {\node[box,minimum width=1.9cm] at (\x,0) {\n}; \draw[dashed,slate!70] (\x,-0.5) -- (\x,-8.2);}
+\draw[arr] (\xb,-1.0) -- node[lbl,above]{POST /officer/proposals/1/decision\\+ \_csrf token} (\xk,-1.0);
+\node[box,minimum width=2.6cm] at (\xk,-1.75) {session $\cdot$ CSRF $\cdot$\\permission};
+\draw[arr] (\xk,-2.5) -- node[lbl,above]{recordDecision(officer,\\approved, 150000.00)} (\xg,-2.5);
+\draw[arr] (\xg,-3.3) -- node[lbl,above]{BEGIN; set\_config(app.actor, token)\\SELECT * FROM record\_decision(...)} (\xp,-3.3);
+\node[boxi,minimum width=4.4cm] at (\xp,-4.25) {officer (verified token)? $\cdot$ lock call row (FOR NO KEY UPDATE)\\re-read $\cdot$ already decided? under review?\\review done? $\le$ requested? $\le$ balance?};
+\node[boxg,minimum width=4.4cm] at (\xp,-5.5) {INSERT decision $\cdot$ UPDATE balance\\UPDATE status $\cdot$ audit event\\ $\cdot$ queue e-mail (outbox)};
+\draw[darr] (\xp,-6.35) -- node[lbl,above]{(decision\_id, remaining)\\or error GR001 + reason} (\xg,-6.35);
+\draw[arr] (\xg,-7.05) -- node[lbl,above]{COMMIT\\(ROLLBACK if refused)} (\xp,-7.05);
+\draw[rarr] (\xg,-7.75) -- node[lbl,above]{refused only: INSERT denied event\\(own autocommit connection)} (\xa,-7.75);
+\draw[darr] (\xg,-8.4) -- node[lbl,above]{result or Denied(reason)} (\xk,-8.4);
+\draw[darr] (\xk,-8.95) -- node[lbl,above]{303 redirect, or 403 / 404 page} (\xb,-8.95);
+\draw[dashed,slate!70] (\xb,-8.2) -- (\xb,-8.95); \draw[dashed,slate!70] (\xk,-8.2) -- (\xk,-8.95); \draw[dashed,slate!70] (\xg,-8.2) -- (\xg,-8.4);
+\end{tikzpicture}

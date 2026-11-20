@@ -1,0 +1,19 @@
+\begin{tikzpicture}[font=\scriptsize,node distance=6mm]
+\node[box,minimum width=2.4cm] (pw) at (1.3,0) {POST /login\\e-mail + password};
+\node[boxa,minimum width=2.9cm] (g) at (4.8,0) {address throttle and\\pair lock checked first\\(429 before hashing)};
+\node[box,minimum width=2.6cm] (v) at (8.3,0) {Argon2id verify\\(one verification on\\every failure path)};
+\node[box,minimum width=2.7cm] (r) at (11.8,0) {role officer or auditor,\\or already enrolled?};
+\node[boxg,minimum width=2.6cm] (s) at (15.0,0) {no: session opened\\(researcher, reviewer)};
+\foreach \a/\b in {pw/g,g/v,v/r} {\draw[arr] (\a)--(\b);}
+\draw[arr] (r)--node[lbl,above]{no}(s);
+\node[boxi,minimum width=3.3cm] (p) at (11.8,-1.9) {pending state in the session\\(5 min; not signed in)\\\texttt{/login/mfa}};
+\draw[arr] (r)--node[lbl,right]{yes}(p);
+\node[boxi,minimum width=3.4cm] (e) at (6.6,-1.9) {first time: setup key + otpauth\\address; code proves the app\\works $\rightarrow$ secret stored encrypted};
+\node[boxi,minimum width=3.4cm] (c) at (6.6,-3.6) {enrolled: 6-digit code, $\pm$1 step\\or one recovery code};
+\draw[arr] (p)--(e); \draw[arr] (p.south) |- (c.east);
+\node[boxr,minimum width=3.3cm] (f) at (11.8,-5.2) {wrong code: counted like a wrong\\password; 5 wrong codes $\rightarrow$\\sign-in abandoned};
+\draw[rarr] (c.south east) -- (f.north west);
+\node[boxg,minimum width=3.3cm] (ok) at (1.9,-3.6) {\texttt{mfa\_accept\_step()}: a 30-s step\\is accepted once (replay)\\$\rightarrow$ new session ID, audit};
+\draw[garr] (c)--(ok); \draw[garr] (e.south west) -- ++(-1.1,0) |- (ok.north);
+\node[cp,text width=3.6cm,anchor=west] at (13.6,-1.9) {every \texttt{mfa\_*} function needs a valid\\actor token for the same user: a\\stolen DB password cannot enrol,\\read or reset a second factor};
+\end{tikzpicture}

@@ -1,0 +1,46 @@
+%% Appendix H: glossary
+\appx{H}{Glossary}
+\tcap{Glossary of terms}
+\begin{center}\small
+\begin{longtable}{@{}L{3.2cm}L{12.6cm}@{}}
+\toprule\textbf{Term} & \textbf{Meaning in this report}\\\midrule\endhead
+AEAD & Authenticated encryption with associated data: encrypts and detects tampering; the associated data (here the key id and the row) is authenticated but not stored twice\\
+Argon2id & Memory-hard, salted password-hashing function (RFC 9106); here 64 MiB, 4 passes, 1 lane\\
+Append-only & A table that can be inserted into but never updated, deleted or truncated (enforced by privileges and triggers)\\
+Actor token & \code{v1.<id>.<expiry>.<nonce>.<HMAC-SHA256>}: proof, signed with \code{secrets/actor.key} by the identity service, that a user is acting; verified by the database. The old \code{app.user\_id} claim is ignored\\
+Audit writer & The account \code{grants\_audit\_write}: no table privilege, can only call \code{audit\_append()} for events without an authenticated actor or for refusals\\
+Attack surface & The set of places where an attacker can interact with the system\\
+BYPASSRLS & Role attribute that skips row-level security; only the read-only backup account has it, because \code{pg\_dump} requires it\\
+Column-level privilege & A GRANT on named columns only (for example SELECT on \code{users} without \code{password\_hash})\\
+Correlation id & Random identifier written on every audit event of one HTTP request\\
+CSP / HSTS / COOP / CORP & Browser security headers: Content-Security-Policy, HTTP Strict-Transport-Security, Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy\\
+CSRF & Cross-site request forgery; countered by a synchronizer token in every state-changing form\\
+Defence in depth & Independent layers, so that one failure does not expose the data\\
+DoS & Denial of service; here the lockout of a victim (F02) or exhaustion of Argon2id memory (F04)\\
+GR001 & Custom SQLSTATE used by \code{record\_decision()} for a refused business rule; the message carries the reason\\
+IDOR & Insecure direct object reference: reading or changing another user's record by guessing its id\\
+Key id / keyring & Short identifier of an encryption key; the keyring file holds one key per line, the first line being the active key\\
+Least privilege & Every account holds only the privileges it needs\\
+HMAC & Keyed hash (RFC 2104); here HMAC-SHA256 signs actor tokens, computed in PHP and verified in SQL\\
+MFA & Multi-factor authentication; implemented as TOTP or a security key for officers and auditors\\
+Hash chain & Each shipped log record carries the SHA-256 of the previous one, so a change, removal or reordering breaks every later hash\\
+Identity service & The process that verifies passwords, second factors and sessions and holds the actor key; the web front end calls it over an internal, HMAC-signed channel\\
+NOLOGIN & Role that cannot connect; used for the schema owner and the privilege groups\\
+O01--O03 & Conditional observations: hash helper (closed in release 3 by the identity service), self-asserted actor and audit insert trust (closed for a stolen database password)\\
+\code{pgaudit} & PostgreSQL extension that logs DDL, role changes, writes and (for chosen roles) every statement\\
+Outbox & A table of messages queued in the business transaction and delivered later by a separate service\\
+\code{pg\_hba.conf} & PostgreSQL client-authentication rules (who may connect, from where, with which method)\\
+Replay protection & A one-time code is accepted once: the database stores the last accepted 30-second step and refuses the same or an older one\\
+Prepared statement & A statement parsed by the server before the values are sent; with \code{ATTR\_EMULATE\_PREPARES=false} the input can only be a value\\
+RLS & Row-level security: policies that filter or refuse rows per actor\\
+SCRAM-SHA-256 & Password-based challenge-response authentication of PostgreSQL clients\\
+SECURITY DEFINER & A function that runs with its owner's privileges; used for narrow, audited doors (login helper, \code{record\_decision()}, throttle functions)\\
+SQLSTATE & Five-character PostgreSQL error code; 42501 = insufficient privilege, 23514 = check violation\\
+STRIDE & Threat categories: spoofing, tampering, repudiation, information disclosure, denial of service, elevation of privilege\\
+TLS \code{verify-full} & Encrypted connection that also checks the server certificate against the host name\\
+WebAuthn & W3C/FIDO2 standard: the browser asks a hardware or platform key to sign a challenge together with the site's origin, so the signature cannot be reused on a look-alike site\\
+TOTP & Time-based one-time password (RFC 6238): HMAC-SHA1 of the current 30-second step, 6 digits, produced by an authenticator app\\
+Trust boundary & Line across which data or control passes between components of different trust\\
+UNION injection & Appending a second SELECT to a vulnerable query to read other tables\\
+WAL & Write-ahead log; continuous archiving of it would allow point-in-time recovery (recommended, not implemented)\\
+\bottomrule\end{longtable}\end{center}

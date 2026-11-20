@@ -1,0 +1,26 @@
+\begin{tikzpicture}[font=\scriptsize,
+ dec/.style={draw=indigo!70,diamond,aspect=2.4,fill=indigo!8,align=center,inner sep=0pt,font=\tiny,minimum width=3.6cm},
+ outb/.style={box,font=\tiny,text width=4.3cm}]
+\node[box,minimum width=3.4cm] (s) at (0,0) {POST /login (CSRF valid)};
+\node[dec] (d1) at (0,-1.4) {source address\\throttled?};
+\node[outb,boxr] (o1) at (5.4,-1.4) {429 + Retry-After 600, before\\any hashing; not audited per request};
+\node[box,minimum width=3.6cm] (f) at (0,-2.9) {auth\_find\_credentials(email)};
+\node[dec] (d2) at (0,-4.3) {found, active,\\not admin-locked?};
+\node[dec] (d3) at (0,-6.0) {pair (account, address)\\locked?};
+\node[boxa,minimum width=3.6cm] (v) at (0,-7.6) {password\_verify(real hash)};
+\node[dec] (d4) at (0,-9.0) {correct?};
+\node[boxa,outb] (dm) at (5.4,-5.15) {ONE Argon2id verification against\\a dummy hash: same cost as a real\\check (finding F03)};
+\node[outb,boxr,text width=4.2cm] (fl) at (11.9,-5.15) {auth\_record\_failure(account or\\NULL, address); audit event with\\the reason (unknown, disabled,\\locked, bad\_password); threshold\\events written once};
+\node[outb,boxr,text width=2.6cm] (r401) at (11.9,-3.1) {401, one generic\\message};
+\node[outb,boxg,minimum width=5.0cm] (ok) at (0,-10.6) {auth\_clear\_failures $\cdot$ new session id\\audit auth.login $\cdot$ 303 to the user's home};
+\draw[arr] (s)--(d1); \draw[rarr] (d1) -- node[lbl,above]{yes} (o1);
+\draw[arr] (d1)--node[lbl,right]{no}(f); \draw[arr] (f)--(d2);
+\draw[arr] (d2)--node[lbl,right]{yes}(d3); \draw[arr] (d3)--node[lbl,right]{no}(v); \draw[arr] (v)--(d4);
+\draw[rarr] (d2.east) -- ++(0.9,0) |- ([yshift=0.25cm]dm.west) node[pos=0.2,lbl,above]{no};
+\draw[rarr] (d3.east) -- ++(0.9,0) |- ([yshift=-0.25cm]dm.west) node[pos=0.2,lbl,above]{yes};
+\draw[rarr] (dm) -- (fl);
+\draw[rarr] (d4.east) -- node[lbl,above,pos=0.1]{no} (11.9,-9.0) -- (fl.south);
+\draw[rarr] (fl.north) -- (r401);
+\draw[garr] (d4)--node[lbl,right]{yes}(ok);
+\node[cp,anchor=west,text width=5.3cm,align=left] at (8.9,-0.9) {\textbf{Exactly one Argon2id verification} on every path that reaches the password stage (amber boxes): unknown, disabled, locked and wrong-password answers cost the same, so timing reveals nothing.};
+\end{tikzpicture}

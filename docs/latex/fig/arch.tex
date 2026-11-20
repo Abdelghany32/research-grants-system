@@ -1,0 +1,36 @@
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[zone] (2.35,-3.55) rectangle (7.75,4.15);
+\node[hd,anchor=south west] at (2.4,4.17) {web container: Apache 2.4 + PHP 8.5, code read-only};
+\draw[zone] (11.35,-3.55) rectangle (16.3,4.15);
+\node[hd,anchor=south west] at (11.4,4.17) {db container: PostgreSQL 18.7};
+\draw[zone,draw=amber!80] (2.35,-5.35) rectangle (16.3,-4.0);
+\node[hd,text=amber,anchor=south west] at (2.4,-3.98) {host (the Docker administrator is trusted)};
+\draw[zone] (2.35,-7.85) rectangle (8.1,-5.65);
+\node[hd,anchor=south west] at (2.4,-5.63) {notifier container (same image, no web port)};
+\node[boxa,minimum width=1.6cm] (br) at (0.8,1.6) {Browser\\(untrusted)};
+\draw[arr] (br) -- node[lbl,above=1mm]{HTTPS\\TLS 1.3} (2.8,1.6);
+\node[cp,rotate=90] at (1.85,3.3) {trust boundary 1};
+\node[box,minimum width=4.9cm] (k) at (5.05,3.2) {Kernel: headers $\rightarrow$ session $\rightarrow$ route $\rightarrow$ CSRF\\$\rightarrow$ login (+ second factor) $\rightarrow$ permission};
+\node[box,minimum width=4.9cm] (c) at (5.05,2.05) {Controllers + templates\\(output escaped)};
+\node[box,minimum width=4.9cm] (g) at (5.05,0.95) {GrantWorkflow (every write)\\GrantQueries (every read)};
+\node[boxi,minimum width=2.3cm] (f) at (3.7,-0.55) {ActorToken\\HMAC-SHA256};
+\node[box,minimum width=2.3cm] (a) at (6.4,-0.55) {AuditLog\\audit writer};
+\node[box,minimum width=4.9cm] (ar) at (5.05,-1.65) {AuditReader (auditor screen, CSV export)};
+\node[boxa,minimum width=4.9cm] (sec) at (5.05,-2.8) {secrets/ (0600): actor.key, field keyring,\\TLS key, three DB passwords (read-only)};
+\draw[arr] (k)--(c); \draw[arr] (c)--(g); \draw[arr] (g.south-|f)--(f.north); \draw[arr] (g.south-|a)--(a.north);
+\node[box,minimum width=4.5cm] (d1) at (13.8,3.2) {RLS policies (18)\\column-level grants};
+\node[box,minimum width=4.5cm] (d2) at (13.8,2.05) {guard triggers $\cdot$ constraints\\review deadlines};
+\node[boxg,minimum width=4.5cm] (d3) at (13.8,0.95) {SECURITY DEFINER doors:\\record\_decision $\cdot$ audit\_append\\mfa\_* $\cdot$ notify\_enqueue $\cdot$ auth\_*};
+\node[boxi,minimum width=4.5cm] (d4) at (13.8,-0.55) {actor\_key (owner only)\\verifies every actor token};
+\node[box,minimum width=4.5cm] (d5) at (13.8,-1.65) {audit\_events (append-only)\\audit\_timeline (read-only view)};
+\node[box,minimum width=4.5cm] (d6) at (13.8,-2.8) {notifications (outbox) $\cdot$ login\_failures\\mfa tables: functions only};
+\draw[arr,indigo] (7.5,0.95) -- node[lbl,above,yshift=1pt]{\textbf{db}: grants\_app\\+ actor token per transaction} (11.55,0.95);
+\draw[arr,indigo] (7.5,-0.55) -- node[lbl,above,yshift=1pt]{\textbf{auditDb}: grants\_audit\_write\\audit\_append() only} (11.55,-0.55);
+\draw[arr,indigo] (7.5,-1.65) -- node[lbl,above,yshift=1pt]{\textbf{auditorDb}: grants\_auditor\\SELECT on the view} (11.55,-1.65);
+\node[cp,text width=3.4cm] at (9.55,3.0) {trust boundary 2\\TLS \texttt{verify-full} $\cdot$ SCRAM\\\texttt{hostssl ... samenet}\\no published port};
+\node[box,minimum width=5.6cm] (bk) at (5.4,-4.68) {backups/*.dump.gpg, *.fieldkey.gpg\\(public-key encrypted)};
+\node[box,minimum width=5.6cm] (pg) at (12.9,-4.68) {pg\_dump as grants\_backup\\local socket only, never the network};
+\draw[arr] (pg)--(bk); \draw[arr] (13.8,-4.33)--(13.8,-3.3);
+\node[box,minimum width=5.0cm] (nt) at (5.2,-6.75) {send-notifications.php every minute\\outbox $\rightarrow$ .eml file or SMTP (TLS)};
+\draw[arr,indigo] (8.1,-6.75) -| node[lbl,pos=0.2,above]{\textbf{grants\_notifier}: outbox,\\address and name only} (16.0,-3.25);
+\end{tikzpicture}

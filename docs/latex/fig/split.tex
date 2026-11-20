@@ -1,0 +1,14 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[hd,anchor=west] at (0,4.6) {Release 3: three processes, each holding only what its job needs};
+\node[box,minimum width=1.9cm] (b) at (0.9,3.0) {Browser\\HTTPS};
+\node[boxi,text width=5.2cm] (w) at (7.1,3.0) {\textbf{Web front end}\\pages, business rules, field key\\\texttt{grants\_app}, \texttt{grants\_auditor}\\\textbf{no} actor key, \textbf{no} hash access};
+\node[boxg,text width=5.6cm] (i) at (17.3,3.0) {\textbf{Identity service}\\passwords, TOTP, security keys, sessions\\actor key, audit writer, \texttt{grants\_identity}\\signs the actor token};
+\node[box,text width=5.0cm] (d) at (7.1,-0.4) {\textbf{PostgreSQL 18 + pgaudit}\\RLS, guards, \texttt{audit\_append()}\\verifies the actor token itself};
+\node[boxa,text width=5.2cm] (l) at (17.3,-0.4) {\textbf{Log shipper}\\no network, no secrets, read-only inputs\\hash-chained archive};
+\draw[arr] (b) -- (w);
+\draw[arr] (w) -- node[lbl,above] {HMAC-signed, internal network only} node[lbl,below] {opaque session handle} (i);
+\draw[arr] (w) -- node[lbl,right,xshift=2pt] {SQL with the actor token (only for a live session)} (d);
+\draw[arr] (i.south west) -- (d.north east);
+\draw[darr] (d) -- node[lbl,above] {JSON log: pgaudit records, connections, refusals} (l);
+\node[cp,anchor=west,text width=21cm] at (0,-2.2) {Residual: a compromised front end can act as the users signed in right now (it sees their session handles), but it cannot read hashes, mint a token for anyone else, forge a verified audit event or clear the sign-in throttle (Section~\ref{sec:incident}, incident 3).};
+\end{tikzpicture}

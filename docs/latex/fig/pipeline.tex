@@ -1,0 +1,10 @@
+\begin{tikzpicture}
+\foreach \i/\t/\o in {0/{1 Security\\headers}/{set on every\\response},1/{2 Session}/{idle 20 min\\absolute 8 h},2/{3 Route\\match}/{no route:\\404},3/{4 CSRF\\(POST)}/{bad token:\\400 + audit},4/{5 Login\\check}/{anonymous:\\303 /login},5/{6 Role\\permission}/{wrong role:\\403 + audit},6/{7 Controller\\+ workflow}/{Denied:\\403 / 404 + audit}}
+ {\node[box,minimum width=1.7cm,minimum height=1.0cm] (p\i) at (\i*2.08,0) {\t};
+  \node[cp,below=1mm of p\i] {\o};}
+\node[boxg,minimum width=1.7cm,minimum height=1.0cm] (p7) at (7*2.08,0) {8 Database\\RLS $\cdot$ grants\\$\cdot$ triggers};
+\node[cp,below=1mm of p7] {no identity:\\0 rows};
+\foreach \i/\j in {0/1,1/2,2/3,3/4,4/5,5/6,6/7} {\draw[arr] (p\i)--(p\j);}
+\draw[decorate,decoration={brace,amplitude=4pt,raise=2pt}] (p0.north west) -- node[above=6pt,hd]{PHP layer: every check can refuse before SQL is sent} (p6.north east);
+\draw[decorate,decoration={brace,amplitude=4pt,raise=2pt}] (p7.north west) -- node[above=6pt,hd,text=okgreen]{PostgreSQL} (p7.north east);
+\end{tikzpicture}

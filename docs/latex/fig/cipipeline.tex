@@ -1,0 +1,9 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[hd,anchor=west] at (0,2.5) {every push and pull request (\texttt{.github/workflows/ci.yml})};
+\node[boxi,minimum width=3.3cm,minimum height=1.9cm,align=left] (l) at (2.1,0.5) {\textbf{lint}: syntax and hygiene\\ shell, Python, JavaScript\\ PHP (official 8.5 image)\\ workflows are valid YAML\\ no secrets tracked};
+\node[boxi,minimum width=7.8cm,minimum height=1.9cm,align=left] (v) at (8.9,0.5) {\textbf{verify}: tests, labs, retests, recovery\\ setup (secrets, images, schema, seed, two-step demo accounts)\\ 78 tests + 13 owner checks $\cdot$ SQL-injection lab $\cdot$ black-box pentest\\ retest F02--F05 and F01/O02/O03 (checker fails on STILL\_OPEN)\\ incident 2 $\cdot$ incident 1 $\cdot$ backup, loss, restore};
+\node[box,minimum width=3.3cm,minimum height=1.9cm,align=left] (i) at (15.2,0.5) {\textbf{image}: build with\\freshly pulled base\\layers; report the\\pending package\\upgrades};
+\draw[arr] (l)--(v);
+\draw[darr] (l.south) |- (0.6,-1.2) -| (i.south);
+\node[cp,anchor=west] at (0.9,-1.5) {runs in parallel with verify; evidence files are uploaded as an artifact; \texttt{dependabot} proposes action and base-image updates weekly};
+\end{tikzpicture}

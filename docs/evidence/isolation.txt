@@ -1,0 +1,53 @@
+PROCESS ISOLATION - 2026-11-17T20:38:09Z (UTC)
+
+== web front end
+environment variable names: APACHE_CONFDIR APACHE_ENVVARS APACHE_RUN_GROUP APACHE_RUN_USER APP_DB_PASSWORD AUDITOR_DB_PASSWORD DB_HOST DB_NAME DB_PORT DB_SSLROOTCERT FIELD_KEY_FILE GPG_KEYS HOME HOSTNAME IDENTITY_API_KEY IDENTITY_MODE IDENTITY_URL LOG_DIR PATH PHPIZE_DEPS PHP_ASC_URL PHP_CFLAGS PHP_CPPFLAGS PHP_INI_DIR PHP_LDFLAGS PHP_SHA256 PHP_URL PHP_VERSION PWD TZ 
+PASS  web has no ACTOR_KEY_FILE
+PASS  web has no AUDIT_WRITER_DB_PASSWORD
+PASS  web has no IDENTITY_DB_PASSWORD
+PASS  web has no NOTIFIER_DB_PASSWORD
+PASS  web has no BACKUP_DB_PASSWORD
+PASS  web has no POSTGRES_PASSWORD
+PASS  web has IDENTITY_MODE=remote
+PASS  web has no /run/grants/actor.key
+PASS  web has no /run/grants/demo-totp.txt
+PASS  web has no /run/grants/demo-credentials.txt
+PASS  web has no /srv/grants/tests
+PASS  web has no /srv/grants/scripts
+PASS  web has no /srv/grants/database
+PASS  web has no /srv/grants/identity
+-- the web account's own database password, from inside the web container:
+PASS  web account refused: SELECT * FROM auth_find_credentials('amina.elidrissi@uni.example')
+PASS  web account refused: SELECT password_hash FROM users
+PASS  web account refused: SELECT * FROM identity_sessions
+PASS  web account refused: SELECT * FROM mfa_recovery_codes
+PASS  web account refused: SELECT * FROM webauthn_credentials
+PASS  web account refused: SELECT * FROM webauthn_list(1)
+PASS  web account refused: SELECT * FROM actor_key
+
+== identity service
+environment variable names: ACTOR_KEY_FILE APACHE_CONFDIR APACHE_ENVVARS APACHE_RUN_GROUP APACHE_RUN_USER AUDIT_WRITER_DB_PASSWORD DB_HOST DB_NAME DB_PORT DB_SSLROOTCERT FIELD_KEY_FILE GPG_KEYS HOME HOSTNAME IDENTITY_API_KEY IDENTITY_DB_PASSWORD IDENTITY_MODE LOG_DIR PATH PHPIZE_DEPS PHP_ASC_URL PHP_CFLAGS PHP_CLI_SERVER_WORKERS PHP_CPPFLAGS PHP_INI_DIR PHP_LDFLAGS PHP_SHA256 PHP_URL PHP_VERSION PWD TZ 
+PASS  identity holds the actor key
+PASS  identity has no APP_DB_PASSWORD
+PASS  identity has no AUDITOR_DB_PASSWORD
+PASS  identity has no NOTIFIER_DB_PASSWORD
+PASS  identity has no BACKUP_DB_PASSWORD
+PASS  identity has no /srv/grants/public
+PASS  identity has no /srv/grants/templates
+PASS  identity has no /srv/grants/tests
+PASS  identity has no /srv/grants/scripts
+PASS  identity has no /srv/grants/database
+PASS  identity is not published on the host
+PASS  identity answers the web container (internal network)
+PASS  identity does not answer the host
+FAIL  a call without a valid signature is refused (HTTP 401)
+
+== notifier
+environment variable names: APACHE_CONFDIR APACHE_ENVVARS APACHE_RUN_GROUP APACHE_RUN_USER DB_HOST DB_NAME DB_PORT DB_SSLROOTCERT GPG_KEYS HOME HOSTNAME LOG_DIR MAIL_TRANSPORT NOTIFIER_DB_PASSWORD PATH PHPIZE_DEPS PHP_ASC_URL PHP_CFLAGS PHP_CPPFLAGS PHP_INI_DIR PHP_LDFLAGS PHP_SHA256 PHP_URL PHP_VERSION PUBLIC_URL PWD TZ 
+PASS  notifier has only its own credential
+PASS  notifier has no key files
+
+== operator container
+NOTE  the operator container 'ops' is running: it holds every secret for tests and labs and must not exist in production (docker compose --profile ops down)
+
+SUMMARY: 36 checks passed, 1 failed

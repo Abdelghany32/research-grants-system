@@ -1,0 +1,19 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[hd,anchor=west] at (0,0.95) {Field keyring: rotation without a flag day};
+\foreach \i/\t in {0/{Generate\\openssl rand\\(256 bits)},1/{Add key $k_{n+1}$\\first line =\\active key},2/{Re-encrypt all\\rows, one\\transaction},3/{Verify: every\\comment\\decrypts},4/{Retire $k_n$\\refused while\\rows use it}}
+ {\node[box,minimum width=2.7cm,minimum height=1.05cm] (k\i) at (\i*3.4+1.35,-0.35) {\t};}
+\foreach \a/\b in {0/1,1/2,2/3,3/4} {\draw[arr] (k\a)--(k\b);}
+\node[cp,below=1mm of k2,text width=3.1cm] {audit event\\\texttt{admin.rotate\_field\_key}};
+\node[cp,below=1mm of k1,text width=3.1cm] {old keys stay,\\old values still decrypt};
+\node[hd,anchor=west] at (0,-2.55) {Keys, backups and custody};
+\node[box,minimum width=3.7cm] (kb) at (1.95,-3.85) {secrets/field.key\\(0600, outside Git and DB)};
+\node[boxi,minimum width=3.4cm] (kg) at (6.25,-3.85) {gpg --encrypt\\public key only};
+\node[box,minimum width=3.5cm] (kf) at (10.3,-3.85) {backups/*.fieldkey.gpg\\stored apart from the dump};
+\draw[arr] (kb)--(kg); \draw[arr] (kg)--(kf);
+\node[boxa,minimum width=3.3cm] (p1) at (2.0,-5.75) {1 protect\\passphrase on private key};
+\node[boxa,minimum width=3.1cm] (p2) at (5.6,-5.75) {2 export\\to restore team};
+\node[boxa,minimum width=3.4cm] (p3) at (9.1,-5.75) {3 remove from\\backup host};
+\node[boxg,minimum width=3.4cm] (p4) at (12.9,-5.75) {4 import on a clean\\workstation to restore};
+\foreach \a/\b in {p1/p2,p2/p3,p3/p4} {\draw[arr] (\a)--(\b);}
+\node[cp] at (8.2,-6.65) {the host can still \emph{encrypt} backups (public key) but can no longer \emph{read} them (backup-key-custody.txt)};
+\end{tikzpicture}

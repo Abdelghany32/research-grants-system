@@ -1,0 +1,51 @@
+FIELD-KEY ROTATION DRILL - 2026-11-17T20:16:37Z (UTC) - database grants
+
+== 1. Before
+keyring secrets/field.key (first = active):
+  k6   <- active
+  k1
+protected values in grants (review comments and TOTP secrets) by key:
+  key k6 rows: 5
+  3 comment(s) decrypt with the keyring (active key k6); by key: {"k6":3}
+
+== 2. Add a new active key (the previous keys stay in the keyring, for decryption only)
+new active key 'k7' added; previous keys kept for decryption. Now run: scripts/rotate-field-key.sh reencrypt
+keyring secrets/field.key (first = active):
+  k7   <- active
+  k6
+  k1
+protected values in grants (review comments and TOTP secrets) by key:
+  key k6 rows: 5
+
+== 3. Nothing breaks at the moment of the key change: old values still decrypt
+  3 comment(s) decrypt with the keyring (active key k7); by key: {"k6":3}
+
+== 4. Retiring the previous key now is refused, because rows still depend on it
+refusing: 5 row(s) still use key 'k6'; run reencrypt first
+(refused, exit code 2)
+
+== 5. Re-encrypt every comment under the new key (one transaction, audited as admin.rotate_field_key)
+re-encrypting 5 value(s) (review comments and TOTP secrets) in grants under the active key ...
+5 value(s) re-encrypted to key 'k7', 0 already current
+keyring secrets/field.key (first = active):
+  k7   <- active
+  k6
+  k1
+protected values in grants (review comments and TOTP secrets) by key:
+  key k7 rows: 5
+
+== 6. Verify through the application path
+  3 comment(s) decrypt with the keyring (active key k7); by key: {"k7":3}
+
+== 7. Now the previous key can be retired
+key 'k6' retired (a backup of the previous keyring was kept next to it; keep it with the backups made under that key)
+keyring secrets/field.key (first = active):
+  k7   <- active
+  k1
+protected values in grants (review comments and TOTP secrets) by key:
+  key k7 rows: 5
+  3 comment(s) decrypt with the keyring (active key k7); by key: {"k7":3}
+
+== 8. The rotation is in the audit trail (read through the auditor account)
+id    time (UTC)              actor                        role       proved action                 resource      outcome  request  details
+474   2026-11-17 20:16:40.376 (not signed in)              -          no     admin.rotate_field_key -             success           {"active_key": "k7", "rows_reencrypted": 5, "rows_already_current": 0}

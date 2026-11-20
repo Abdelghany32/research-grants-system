@@ -1,0 +1,1254 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.1cm,top=2.4cm,bottom=2.2cm]{geometry}
+\usepackage{graphicx,xcolor,listings,booktabs,longtable,array,tabularx,multirow,fancyhdr,titlesec,enumitem,caption,float,tikz,tcolorbox}
+\usepackage{adjustbox,subcaption}
+\usepackage[hidelinks,colorlinks=true,linkcolor=indigo,urlcolor=indigo]{hyperref}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc}
+\graphicspath{{./shots/}{../evidence/screenshots/}{../evidence/figures/}{../images/}{./}}
+\input{styles}
+
+\definecolor{indigo}{HTML}{4F46E5}
+\definecolor{ink}{HTML}{0F172A}
+\definecolor{codebg}{HTML}{F4F6FB}
+\definecolor{danger}{HTML}{B42318}
+\definecolor{okgreen}{HTML}{1B7F4B}
+\definecolor{amber}{HTML}{B45309}
+
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\scriptsize, backgroundcolor=\color{codebg}, frame=single,
+  rulecolor=\color{indigo!40}, breaklines=true, breakatwhitespace=false, columns=fullflexible,
+  keepspaces=true, showstringspaces=false, xleftmargin=2pt, xrightmargin=2pt, aboveskip=6pt, belowskip=6pt,
+  commentstyle=\color{okgreen}, keywordstyle=\color{indigo}\bfseries
+}
+\lstset{style=code}
+\lstdefinelanguage{SQLx}{morekeywords={CREATE,ROLE,POLICY,ON,FOR,SELECT,TO,USING,WITH,CHECK,GRANT,REVOKE,ALTER,UPDATE,INSERT,DELETE,AND,IN,NOLOGIN,LOGIN,BEGIN,COMMIT,SET,LOCAL,FROM,WHERE,TABLE,FUNCTION,RETURNS,SECURITY,DEFINER,EXECUTE,RAISE,EXCEPTION,IF,THEN,END},sensitive=false,morecomment=[l]{--}}
+
+\setlength{\parindent}{0pt}\setlength{\parskip}{5pt}
+\setlist{itemsep=1pt,topsep=3pt,parsep=0pt}
+\titleformat{\section}{\Large\bfseries\color{indigo}}{\thesection}{10pt}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{8pt}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{ink}}{\thesubsubsection}{6pt}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+\titlespacing*{\subsection}{0pt}{9pt}{3pt}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small Database Security Assessment Report}
+\fancyhead[R]{\small University Research Grant Management System}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\captionsetup{font=small,labelfont=bf}
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{3.5pt}
+
+\makeatletter\g@addto@macro\UrlBreaks{\do\_\do\-\do\(\do\)}\makeatother
+\urlstyle{tt}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\finding}[1]{\textcolor{danger}{\textbf{#1}}}
+\newcommand{\resisted}[1]{\textcolor{okgreen}{\textbf{#1}}}
+\newcommand{\fixed}{\textcolor{okgreen}{\textbf{Remediated}}}
+\newcommand{\accepted}{\textcolor{amber}{\textbf{Accepted}}}
+\newenvironment{note}{\begin{tcolorbox}[colback=indigo!6,colframe=indigo!50,boxrule=.6pt,arc=3pt,left=6pt,right=6pt,top=3pt,bottom=3pt]\small}{\end{tcolorbox}}
+\newenvironment{warn}{\begin{tcolorbox}[colback=danger!6,colframe=danger!60,boxrule=.6pt,arc=3pt,left=6pt,right=6pt,top=3pt,bottom=3pt]\small}{\end{tcolorbox}}
+\newcommand{\shot}[3][.9]{\begin{figure}[H]\centering\fbox{\includegraphics[width=#1\linewidth]{#2}}\caption{#3}\end{figure}}
+\newcommand{\appx}[2]{\clearpage\subsection*{Appendix #1 -- #2}\addcontentsline{toc}{subsection}{Appendix #1 -- #2}}
+
+\newcommand{\diagram}[3]{\begin{figure}[!htbp]\centering\adjustbox{max width=\linewidth,max height=9.0cm}{\input{fig/#1}}\caption{#2}\label{fig:#3}\end{figure}}
+\newcommand{\tcap}[1]{\captionof{table}{#1}\nopagebreak[4]\vspace{-3pt}}
+\newcommand{\diagramx}[3]{\begin{figure}[!htbp]\centering\adjustbox{max width=\linewidth,max height=10.8cm}{\input{fig/#1}}\caption{#2}\label{fig:#3}\end{figure}}
+\newcommand{\termfig}[3]{\begin{figure}[!htbp]\centering\includegraphics[width=.95\linewidth]{#1}\caption{#2}\label{fig:#3}\end{figure}}
+\newcommand{\shotfig}[4]{\begin{figure}[!htbp]\centering\fbox{\includegraphics[width=#2\linewidth,height=6.6cm,keepaspectratio]{#1}}\caption{#3}\label{fig:#4}\end{figure}}
+\newcommand{\shotpair}[4]{\begin{figure}[!htbp]\centering\fbox{\includegraphics[width=.485\linewidth,height=5.6cm,keepaspectratio]{#1}}\hfill\fbox{\includegraphics[width=.485\linewidth,height=5.6cm,keepaspectratio]{#2}}\caption{#3}\label{fig:#4}\end{figure}}
+\setcounter{tocdepth}{2}
+\captionsetup[figure]{skip=3pt}
+\renewcommand{\topfraction}{0.92}\renewcommand{\bottomfraction}{0.92}\renewcommand{\textfraction}{0.06}\renewcommand{\floatpagefraction}{0.75}
+\setlength{\textfloatsep}{9pt plus 2pt minus 2pt}\setlength{\floatsep}{8pt plus 2pt minus 2pt}\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\begin{document}
+
+%% ====================================================================== 1. COVER PAGE
+\begin{titlepage}
+\phantomsection\label{sec:cover}
+\centering\vspace*{0.2cm}
+{\large\color{indigo}\textbf{Database Security -- Continuous Assessment Group Project}\par}
+\vspace{.3cm}
+{\normalsize 5th year Engineering in Cybersecurity -- Dr.\ Abdulganiyu O.\ Harazeem\par}
+\vspace{.9cm}
+{\Huge\bfseries\color{ink} Database Security\\Assessment Report\par}
+\vspace{.5cm}
+{\LARGE\color{indigo} University Research Grant\\Management System\par}
+\vspace{.5cm}
+{\large Design, implementation, security assessment, remediation and hardening\par}
+\vspace{.6cm}
+\fbox{\includegraphics[width=.55\linewidth]{hero-officer.png}}\par
+\vspace{.6cm}
+\begin{tabular}{@{}rL{11.2cm}@{}}
+\textbf{Stack} & PostgreSQL 18 $\cdot$ PHP 8.5 $\cdot$ Apache 2.4 $\cdot$ Docker Compose\\
+\textbf{Report date} & 17 November 2026\\
+\end{tabular}
+\vspace{.5cm}
+
+\begin{tabular}{@{}L{5.2cm}L{8.0cm}@{}}
+\toprule
+\textbf{Team member} & \textbf{Area}\\\midrule
+Imane HABBANI & A -- Schema and data integrity\\
+Hassan ELGHOMRI & B -- Authentication and application\\
+Abir EL HANAFI & C -- Authorization, RLS and least privilege\\
+Ahlame EsSEBBANE & D -- Transactions, audit, backup and hardening\\
+Abdelghany AIT OUAZGHOUR & E -- Vulnerabilities, remediation, key management, incident 2\\
+\bottomrule
+\end{tabular}
+\addtocounter{section}{1}
+\addcontentsline{toc}{section}{\protect\numberline{1}Cover Page}
+\vfill
+\end{titlepage}
+\setcounter{page}{2}
+
+\begingroup\hypersetup{linkcolor=ink}
+\renewcommand{\contentsname}{Contents}
+\tableofcontents
+\endgroup
+\clearpage
+%% ====================================================================== 2. EXECUTIVE SUMMARY
+\section{Executive Summary}\label{sec:exec}
+
+Our group acted as a Database Security Engineering Team for a university research office. We designed and built a database-backed information system, the \emph{University Research Grant Management System}, that carries a research grant through its whole life cycle: call for proposals, proposal, peer review, funding decision and audit. The system holds information that is worth attacking: unpublished research, confidential reviewer comments, credentials, public money and a security audit trail. We then followed the process required by the assignment -- \emph{Design $\rightarrow$ Build $\rightarrow$ Assess $\rightarrow$ Attack $\rightarrow$ Test $\rightarrow$ Secure $\rightarrow$ Monitor $\rightarrow$ Recover $\rightarrow$ Harden $\rightarrow$ Investigate $\rightarrow$ Report} -- and the report is organised in the 22 sections the instructor prescribed.
+
+\textbf{Approach.} Security is enforced in three independent layers, so that a mistake in one does not open the data: (1) the PHP application checks a role permission on every route and every operation; (2) PostgreSQL itself refuses what the role may not do, through a non-owner runtime account, column-level privileges, row-level security (RLS) and guard triggers, and it \emph{verifies} who is acting through a signed actor token instead of believing the application; (3) the surrounding environment is hardened (private network, TLS, read-only code, encrypted backups). Money is the most sensitive integrity asset, so every award is a single database function that locks the grant call, re-checks eligibility and limits, and writes the decision, the budget change, the status change and the audit event together. Officers and auditors must also present a second factor (TOTP).
+
+\textbf{Attack and remediation.} We attacked our own system in an isolated lab on 11 November 2026 (115 baseline checks resisted, 5 findings F01--F05, 3 conditional observations O01--O03). On 17 November 2026 we remediated all five findings and \emph{replayed the same probes} to prove each fix (Sections~\ref{sec:vuln} and~\ref{sec:final}). A second release the same day closed two of the three conditional observations for the threat of a stolen database password: the actor identity is now \emph{proved} to the database (O02) and audit events can no longer be forged by the web account (O03). The same release added two-step sign-in for officers and auditors, review deadlines enforced by the database, a CSV export for the auditor, e-mail notifications through a database outbox, and a continuous-integration workflow. We also built a SQL-injection laboratory whose impact is demonstrated rather than assumed (Section~\ref{sec:sqli}) and rehearsed two incidents, one of them a stolen service credential, run before and after the fix (Section~\ref{sec:incident}).
+
+\diagram{dashboard}{Results at a glance (17 November 2026). Every number is read from an evidence file named in the table below or in Appendix~G; nothing is estimated.}{dashboard}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}L{5.4cm}Y@{}}
+\toprule
+\textbf{Measure} & \textbf{Result (evidence file)}\\\midrule
+Integration tests on real PostgreSQL & 78 tests, 851 assertions, 0 failed, plus 13 owner-level guard checks, 0 failed (\code{docs/evidence/test-results.txt})\\
+Concurrent award, two OS processes & exactly one award wins; the loser is refused for insufficient funds\\
+First penetration campaign (11 Nov) & 115 checks resisted; F01--F05 reproduced; O01--O03 documented (\code{docs/pentest/WRITEUP.md})\\
+Black-box retest on the live lab (17 Nov, after release 2) & 122 checks resisted, 0 findings (\code{docs/evidence/pentest-20261117T162553Z.txt})\\
+Retest of F02--F05 (60 timing samples) & all four \fixed; unknown / unlocked / locked medians 151.6 / 147.8 / 148.7 ms, previously 251.8 / 254.4 / 28.0 ms (\code{pentest-after/auth-retest.json})\\
+Retest of F01, O02 and O03 (restricted SQL) & F01 probe refused with 42501; a claimed officer identity sees 0 proposals (was 18); a forged audit event is refused (\code{pentest-after/deep-db.json}: DB03, DB04, DB05 \fixed); the credential helper O01 stays open\\
+Incident 2, before and after identity binding & before: the attacker awarded money and forged an event; after: only the account list was readable and nothing reached the audit trail (\code{incident-privileged-before-binding.txt}, \code{incident-privileged.txt})\\
+SQL-injection lab & 9 payloads: 8 accounts leaked before the fix; the same 9 return 0 rows after (\code{sqli-demo.txt})\\
+Backup, loss, restore drill & restored in 0.8 s; 6 tables match by row count and MD5; 8 checks, 28 assertions pass, including identity binding, second factor and outbox (\code{recovery-drill.txt})\\
+Clean-room installation & 177 files copied, no secrets, setup and all tests pass in 41 s (\code{clean-room.txt})\\
+Continuous integration & \code{.github/workflows/ci.yml}: configured, runs on every push and pull request (lint, tests, labs, retests, recovery drill, image build with a patch-status report)\\
+Key rotation drill & key k2 $\rightarrow$ k3, 3 of 3 comments re-encrypted, retirement refused while rows depend on it (\code{key-rotation.txt})\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{warn}
+\textbf{What this report does not claim.} The tests and the penetration campaign are bounded lab exercises on the group's own fictional system. They are not a certification. One trust-boundary observation (O01, the credential helper that returns a password hash) is accepted and documented, and one residual risk is stated plainly: an attacker who compromises the \emph{web process itself} holds the actor key and can again act as any user (Sections~\ref{sec:incident} and~\ref{sec:recs}). TOTP is not phishing-resistant, and the lab sends e-mail to files, not to a real mail server.
+\end{warn}
+
+\subsection{Where each requirement is answered}
+Each of the ten phases, the nine final-assessment questions and the five deliverables is traced to its report section, implementation and evidence file in the matrix of Appendix~G (Section~\ref{sec:appx}). In short: design and analysis in Sections~\ref{sec:er}--\ref{sec:threat}; authentication and the second factor in~\ref{sec:auth}; RBAC and least privilege in~\ref{sec:rbac}--\ref{sec:lp}; the controlled vulnerability and SQL injection in~\ref{sec:vuln}--\ref{sec:sqli}; data protection in~\ref{sec:data}; auditing in~\ref{sec:audit}; backup and recovery in~\ref{sec:backup}; hardening in~\ref{sec:harden}; incidents in~\ref{sec:incident}; the final assessment in~\ref{sec:final}.
+
+%% ====================================================================== 3. INTRODUCTION
+\section{Introduction and System Description}\label{sec:intro}
+
+\subsection{Scenario and why this system}
+A research office publishes \emph{grant calls}. A researcher writes and submits a \emph{proposal}. An officer assigns \emph{reviewers}; a reviewer scores the proposal (1--10) and writes private comments. The officer approves, with an amount, or declines; approval reduces the call's budget. An auditor can reconstruct who did what. We chose this system from the assignment's list of possibilities because it combines \emph{confidential content} (unpublished research, private reviews), \emph{integrity-critical money} (a budget that must never be overspent), \emph{conflicts of interest} (nobody reviews their own proposal) and four clearly different categories of user, which is what makes least-privilege controls meaningful.
+
+\subsection{Users and what each may do}
+\tcap{Users and what each role may do}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{2.5cm}YY@{}}
+\toprule\textbf{Role} & \textbf{Can do} & \textbf{Cannot do}\\\midrule
+Researcher & See open calls; create, edit, submit and delete \emph{own} drafts; read own status and final decision & See others' proposals, any review, any audit data\\
+Reviewer & See only assigned, submitted proposals; save a draft review; submit one final review & See unassigned work; edit a final review\\
+Grants officer & Manage calls; assign reviewers; extend a review deadline; record the decision and award & Edit proposals; change a final decision; read drafts\\
+Auditor & Read-only audit timeline with filters, and a CSV export of it & Read proposal text or review comments; write anything\\
+Service accounts & \code{grants_app} (runtime), \code{grants_audit_write} (audit writer), \code{grants_auditor} (read-only view), \code{grants_notifier} (e-mail outbox), \code{grants_backup} (dump, local socket) & Own objects, create objects, read hashes, log in over the network (backup)\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Business rules enforced by the database, not only by PHP}
+A submitted proposal is immutable. A final review cannot change. A decision needs at least one completed review. An award cannot exceed the requested amount or the remaining budget, and the budget only decreases. There is at most one decision per proposal. A reviewer cannot be the applicant. A proposal can only be created in an open call and only before its deadline. A reviewer cannot save or submit a review after its due date; only an officer can move that date, and only forwards. Officers and auditors are not signed in until they present a second factor.
+
+\subsection{Technology (confirmed with the instructor)}
+The assignment requires the lab environment to be used and any additional tool to be permitted by the instructor. We therefore submitted our technology choices -- PostgreSQL 18, PHP 8.5, Apache 2.4, Docker and Docker Compose, libsodium, GnuPG, Python, Node.js with Chrome (screenshots) and LaTeX -- to the instructor, Dr.\ Abdulganiyu O.\ Harazeem, \emph{before the project started}. He approved them by e-mail (``Your choice of technologies are acceptable, so you may proceed accordingly''); the approval e-mail is on file. We used the stack below.
+\tcap{Technology and versions actually used}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.4cm}Y@{}}
+\toprule\textbf{Component} & \textbf{Version actually used and purpose}\\\midrule
+PostgreSQL & 18.7 (\code{postgres:18}, rebuilt on 17 November): roles, GRANT/REVOKE, column privileges, RLS, triggers, SECURITY DEFINER functions\\
+PHP & 8.5.12 with PDO\_PGSQL (server-side prepared statements), sodium, Argon2id; PHP is the only application language\\
+Apache & 2.4.69 with mod\_php and mod\_ssl, HTTPS only\\
+Docker / Compose & 29.1.3 / 2.40.3: isolated, reproducible lab; no database port published\\
+Other tools & libsodium (field encryption), GnuPG (backups), Bash and Python scripts, LaTeX (this report), GitHub Actions (continuous integration); TOTP (RFC 6238) and an SMTP client are implemented in PHP without libraries\\
+\bottomrule\end{tabularx}\end{center}
+All vulnerability testing was done against the group's own system, in an isolated lab, as rule 5 and 6 of the assignment require.
+
+%% ====================================================================== 4. SYSTEM ARCHITECTURE
+\section{System Architecture}\label{sec:arch}
+
+\subsection{Runtime view}
+\diagram{arch}{Runtime architecture and trust boundaries. The web service holds restricted database credentials and the actor key, and reaches PostgreSQL through three accounts over TLS; a separate notifier container delivers e-mail with its own account; the host and its administrator are trusted by assumption.}{arch}
+
+Every request follows the same ordered pipeline in \code{src/Http/Kernel.php}: \emph{security headers $\rightarrow$ session $\rightarrow$ route match $\rightarrow$ CSRF (POST) $\rightarrow$ login $\rightarrow$ role permission $\rightarrow$ controller $\rightarrow$ database (RLS)}. The router is an explicit table of 23 routes, and each names the permission it needs (for example \code{decision.record} or \code{audit.read}). Following one button to the database is therefore a short, auditable path (Figure~\ref{fig:pipeline}).
+\diagram{pipeline}{Request pipeline in \code{Kernel.php}. Every request passes the same ordered checks; each can refuse before any SQL is sent, and the database enforces the same boundaries independently.}{pipeline}
+
+\subsection{Separate database accounts, on purpose}
+Each request may open up to three PostgreSQL connections, each with a different account. \textbf{db} uses \code{grants_app} for business transactions and presents a signed actor token for the transaction. \textbf{auditDb} uses a \emph{different} account, \code{grants_audit_write}, which has no table privilege and can only call \code{audit_append()}; it is a separate, autocommit connection so that a \emph{denied} audit event survives the rollback of the business transaction that was refused. \textbf{auditorDb} uses the read-only \code{grants_auditor} account for the auditor screen and its CSV export. A fourth account, \code{grants_notifier}, belongs to the notifier container that delivers e-mail (Section~\ref{sec:data}). The actor identity is \emph{proved} per transaction: the web process signs a short-lived token with a key only it holds, and the database verifies the signature itself (Figure~\ref{fig:identity}); a reused connection can never carry one user's identity into the next request, and a stolen database password alone yields no identity.
+\diagram{identity}{How the database knows who is acting. The web process mints a signed actor token for one transaction; PostgreSQL verifies the signature with a key only its owner can read, looks up the role, and applies the policies. An attacker with only the database password cannot produce a valid token, so no identity exists and every policy returns no row.}{identity}
+
+\subsection{Key design decisions and their justification}
+\tcap{Key design decisions and their justification}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{4.6cm}Y@{}}
+\toprule\textbf{Decision} & \textbf{Reason}\\\midrule
+One web root; everything else outside it & \code{/config/config.php}, \code{/secrets/web.env}, \code{/.git/config} answer 404; no source file or backup can be fetched\\
+The web container holds no owner or superuser credential & A PHP compromise yields \code{grants_app} or \code{grants_auditor}, never DDL rights\\
+Actor proved by a signed token; role looked up in the database & A stolen database password cannot claim an identity (O02), PHP cannot assert a role, and a test proves that a session variable cannot grant one\\
+Audit written only through \code{audit_append()}, by two accounts & The web account has no privilege on the trail (O03); events without an authenticated actor come from a separate account and are marked unverified\\
+Second factor for officers and auditors & A stolen or guessed password is not enough for the roles that move money or read the whole trail\\
+E-mail through a database outbox & A message is queued in the same transaction as the change, addressed and worded by the database, and sent by a separate low-privilege service\\
+One SQL function performs the whole award & A caller with raw SQL cannot commit half an award (finding F01, Section~\ref{sec:vuln})\\
+Comments encrypted in PHP, not with \code{pgcrypto} & The key never reaches SQL text, query logs or the database host\\
+Backup: \code{pg_dump} piped to public-key encryption & The backup host needs no decryption key; plaintext never touches the disk\\
+Docker with a private network, ports bound to loopback & The database is unreachable from outside the compose network\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Defence in depth}
+\diagram{layers}{Defence in depth. A request must pass six independent layers, including a proof of identity that the database checks itself; the penetration tests and the SQL-injection laboratory show each layer refusing what the layer above let through.}{layers}
+
+%% ====================================================================== 5. ER DIAGRAM
+\section{ER Diagram and Database Design}\label{sec:er}
+
+\subsection{Entity-relationship diagram}
+\diagram{er}{Entities and relationships. Foreign keys to \code{users} are listed inside each entity; composite foreign keys pin the currency; \code{login\_failures}, \code{notifications} and \code{mfa\_recovery\_codes} are reachable only through SECURITY DEFINER functions, and \code{actor\_key} only by the schema owner. Full column diagram: \code{docs/ERD.md}.}{er}
+
+\subsection{Description of the major tables}
+\tcap{Description of the major tables}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{2.7cm}Y@{}}
+\toprule\textbf{Table} & \textbf{Purpose and key integrity rules}\\\midrule
+\code{users} & Identity, role (\code{researcher/reviewer/officer/auditor}), Argon2id hash, active flag, administrative lock; the second-factor secret (encrypted) and the last accepted time step. E-mail is lower-case and unique.\\
+\code{grant_calls} & A funding call. \code{numeric(14,2)} money; \code{0 <= remaining_budget <= total_budget}; a trigger lets the balance only decrease; \code{UNIQUE (id, currency)} is the target of the currency-pinning foreign key.\\
+\code{proposals} & A draft until submitted. Composite foreign key \code{(call_id, currency)} makes a currency mismatch impossible; a guard trigger enforces the state machine and makes submitted content immutable.\\
+\code{reviews} & One review per reviewer and proposal; \code{reviews_final_is_complete} requires a score and a timestamp when final; a guard trigger blocks self-review, edits to a final review and any save or submit after \code{due_at}; only an officer can move \code{due_at}, only forwards. Comments are stored as ciphertext.\\
+\code{decisions} & At most one per proposal (\code{UNIQUE}); \code{approved} requires an amount above zero, \code{declined} requires zero; inserted only by \code{record_decision()}.\\
+\code{audit_events} & Append-only evidence (triggers refuse UPDATE, DELETE and TRUNCATE even for the owner). Holds metadata only, never proposal text; \code{actor_verified} says whether the actor was proved by a token or only named.\\
+\code{login_failures} & Failed sign-ins per account and source address, pruned after one day; used for the throttle.\\
+\code{actor_key} & One row: the HMAC key that verifies actor tokens. Readable by the schema owner only.\\
+\code{mfa_recovery_codes} & Eight single-use recovery codes per enrolled user, stored as Argon2id hashes.\\
+\code{notifications} & The e-mail outbox: recipient, kind, fixed subject and body, sent time, attempts; unique per (kind, subject, recipient).\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{State machine}
+\begin{figure}[H]\centering
+\begin{tikzpicture}[font=\small,node distance=9mm,
+ st/.style={draw=indigo,rounded corners=3pt,fill=codebg,minimum width=21mm,minimum height=7mm,align=center},
+ arr/.style={-{Stealth[length=2.2mm]},thick}]
+\node[st] (d) {draft}; \node[st,right=of d] (s) {submitted}; \node[st,right=of s] (u) {under\_review};
+\node[st,above right=2mm and 9mm of u] (a) {approved}; \node[st,below right=2mm and 9mm of u] (x) {declined};
+\draw[arr] (d)--node[above,font=\scriptsize]{submit}(s); \draw[arr] (s)--node[above,font=\scriptsize]{assign}(u);
+\draw[arr] (u)--(a); \draw[arr] (u)--(x);
+\end{tikzpicture}
+\caption{Proposal life cycle. The guard trigger refuses every other transition, and the last two arrows require a matching decision row.}
+\end{figure}
+
+\subsection{Design justification}
+Integrity rules live in the database because the application is the component we expect to fail: a bug, a bypass or a stolen credential must still meet constraints, triggers and privileges. \code{numeric} avoids floating-point money errors; composite foreign keys turn a business rule (one currency per call) into a structural property; identity columns avoid client-chosen keys; timestamps are \code{timestamptz} with the database and login roles pinned to UTC.
+%% ====================================================================== 6. DATA CLASSIFICATION AND CIA
+\section{Data Classification and CIA Analysis}\label{sec:class}
+
+\subsection{Critical assets, sensitivity, owners and authorized users}
+\tcap{Critical assets, sensitivity, owners and authorized users}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{2.63cm}L{1.72cm}L{2.00cm}L{3.99cm}L{4.08cm}@{}}
+\toprule\textbf{Asset} & \textbf{Class} & \textbf{Data owner} & \textbf{Authorized to read} & \textbf{Authorized to write}\\\midrule\endhead
+\code{users.password_hash} & Secret & The account holder & Nobody through SQL grants; \code{auth_find_credentials()} returns one row for one e-mail & Schema owner only (seed)\\
+\code{users} e-mail, name, department & Personal & The person & Runtime account (the application needs reviewer names) & Schema owner only\\
+\code{users.role}, \code{is_active}, \code{locked_until} & Internal, integrity-critical & Research office & Runtime account & Schema owner only (administrative lock)\\
+\code{proposals} title, abstract, amount & Confidential (unpublished research) & The researcher & Owner; assigned reviewers and officers once submitted & Owner while draft\\
+\code{reviews.score} & Confidential & The reviewer & The reviewer; officers & The reviewer until final\\
+\code{reviews.comments_enc} & Restricted (private notes) & The reviewer & Reviewer and officers as plaintext in the application; ciphertext everywhere else, including DBAs and backups & The reviewer until final\\
+\code{decisions}, \code{remaining_budget} & Confidential, integrity-critical (money) & Grants office & Officers; the proposal owner reads the outcome & Only \code{record_decision()}\\
+\code{audit_events} & Restricted (security record) & Internal audit & Auditor through \code{audit_timeline} and its CSV export (no content columns) & Only through \code{audit_append()} (verified actor token) and \code{record_decision()}; the audit writer for events without an authenticated actor\\
+TOTP secret and recovery codes & Secret & The account holder & Nobody in clear: the secret is encrypted with the field keyring, the codes are Argon2id hashes; only the web process decrypts, for the user signing in & The enrolling user, once (a second enrolment is refused)\\
+E-mail outbox (\code{notifications}) & Internal & Research office & Notifier account; messages contain no proposal details & \code{notify\_enqueue()} for the actor's own actions; the notifier marks them sent\\
+\code{login_failures} & Internal & Security operations & Nobody through SQL; counters through three functions & Same functions\\
+Backups \& key backup & Secret & System administrator & Holders of the backup private key (restore team) & Backup job (public key only)\\
+TLS key, DB passwords, field keyring, actor key & Secret & System administrator & Files under \code{secrets/}, mode 0600; the actor key is also stored in the owner-only table \code{actor\_key} & Generated by setup and rotation scripts\\
+\bottomrule\end{longtable}\end{center}
+
+\subsection{CIA requirements per asset}
+\tcap{CIA requirements per asset}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{2.58cm}L{3.68cm}L{3.87cm}L{4.51cm}@{}}
+\toprule\textbf{Asset} & \textbf{Confidentiality} & \textbf{Integrity} & \textbf{Availability}\\\midrule\endhead
+Credentials and second factor & High: never readable or logged; Argon2id; TOTP secret encrypted & High: only the owner process writes; a second enrolment is refused & Login must keep working for legitimate users under guessing attacks: per-address throttle instead of account lockout (F02/F04); recovery codes and an operator reset if a phone is lost\\
+Review comments & High: authenticated encryption, key outside the database & High: bound to the row; final reviews immutable & Keyring must survive loss: separate key backup, rotation, custody of the private backup key\\
+Proposals & Medium--high: row-level security by owner/assignment & High: immutable after submit; guarded state machine & Deadline-critical: submission must work until the call closes; draft saving is cheap\\
+Funds and decisions & Medium & \textbf{Critical}: never overspent; award is atomic; one decision per proposal & Awards serialized per call by a row lock; a waiting award times out after 10 s rather than hanging\\
+Audit trail & Medium & \textbf{Critical}: append-only, no UPDATE/DELETE for anyone, no direct INSERT for the web account; each event says whether its actor was proved & Must record even when the business transaction fails (separate writer connection); growth is unbounded by design (retention is a recommendation)\\
+Notifications & Low--medium: no proposal details ever in a message & Medium: queued with the change, one message per event & Delivery is retried up to five times; a mail outage never blocks the business operation\\
+Backups & High: encrypted to a public key; key kept apart & High: SHA-256 checked, restore verified by checksums & Restore time measured by the drill: 0.8 s on the lab data; recovery point = last backup (no continuous archiving)\\
+Whole service & --- & --- & Runtime account limited to 30 connections and each request may use two, so about 15 concurrent requests is the ceiling (documented limit); statement timeout 15 s\\
+\bottomrule\end{longtable}\end{center}
+
+\subsection{Threat actors}
+\tcap{Threat actors}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.1cm}L{4.3cm}Y@{}}
+\toprule\textbf{Actor} & \textbf{Capability} & \textbf{Typical goal}\\\midrule
+External anonymous visitor & Reaches the HTTPS login only & Guess passwords, lock accounts, enumerate users, inject SQL or script\\
+Malicious researcher & Valid session, one role & Read a competitor's proposal, edit a draft that is not theirs, raise their own award\\
+Curious or malicious reviewer & Valid session, assigned work only & Read unassigned reviews, change a colleague's score\\
+Rogue officer & Valid session, decision rights & Award to a friend, exceed the budget, double-spend, hide a decision\\
+Compromised database credential & SQL as \code{grants_app} from inside the network, without the actor key & Read accounts, impersonate an officer, award money, forge or erase audit events (all refused since release 2; the account list is still readable)\\
+Compromised web process & Code execution in the web container: holds the actor key and the three database passwords & Act as any user again (accepted residual risk)\\
+Insider DBA or Docker administrator & Host and container access & Read backups, keys and data directly; trusted by assumption in this lab\\
+Lost or stolen backup & Possesses a backup file & Read data offline\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Major attack surfaces}
+\tcap{Major attack surfaces}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.6cm}YL{3.3cm}@{}}
+\toprule\textbf{Surface} & \textbf{Exposure and main controls} & \textbf{Residual risk}\\\midrule
+HTTPS application (23 routes) & Single web root, TLS 1.2/1.3, security headers, CSRF, per-route permission & Self-signed lab certificate\\
+Login form & Argon2id, equal work on every failure path, per-address throttle, generic message, second factor for officers and auditors & Distributed guessing against researchers and reviewers; TOTP is not phishing-resistant\\
+Search and filter parameters & Bound parameters only; escaped output; CSP & None found in routes\\
+Database port (inside Docker) & No published port; \code{hostssl} + SCRAM from the compose network only; backup account socket-only & A compromised web container reaches it by design\\
+Backup files & GnuPG public-key encryption; key backup as a separate file & Private key custody on one lab host\\
+Secrets files & Mode 0600, ignored by Git, never mounted into the image & Readable by the host user\\
+Container and host & Code read-only; unprivileged worker user; dropped modules & Docker administrator is trusted\\
+E-mail channel & Fixed templates, no proposal details, recipient chosen by the database, header-injection checks & Lab default writes files; a real SMTP server is configuration\\
+Published image and CI & Image contains no code and no secrets; CI builds it with freshly pulled base layers and reports pending upgrades & The report is informational; nothing blocks a push\\
+\bottomrule\end{tabularx}\end{center}
+
+%% ====================================================================== 7. THREAT MODEL
+\section{Threat Model}\label{sec:threat}
+We classified threats with STRIDE and tied every row to a control and to the test or evidence that proves it. The right-hand column uses the names printed by \code{scripts/test.sh}; the full listing is in Appendix~D. Figure~\ref{fig:threatmap} shows the same picture from the attacker's side: which actor reaches which surface and where the control or the accepted risk lies.
+\diagram{threatmap}{Threat map: actors against attack surfaces. Green cells are controls proven by a test or retest; amber cells are accepted residual risks (the credential helper O01, the web process that holds the actor key, trusted administrators).}{threatmap}
+
+\tcap{STRIDE threat model with controls and evidence}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{0.85cm}L{3.5cm}L{4.5cm}L{5.0cm}@{}}
+\toprule\textbf{Cat.} & \textbf{Threat} & \textbf{Control} & \textbf{Evidence}\\\midrule\endhead
+S & Guessing or stuffing passwords & Argon2id, throttle 5 per (account, address) / 15 min and 20 per address / 10 min & AUTH throttled before hashing; \code{auth-retest.json} F04\\
+S & Session fixation or theft & ID regenerated at login; \code{__Host-} cookie, Secure, HttpOnly, SameSite; idle 20 min, absolute 8 h & AUTH login regenerates the session ID; pentest SESSION lines\\
+S & Impersonating an officer at SQL level & Identity is proved by a signed actor token verified in the database; role looked up there; the old \code{app.user\_id} claim is ignored & IDENT forged, expired or legacy claims yield no identity; \code{deep-db.json} DB03; \code{incident-privileged.txt}\\
+S & Stealing or guessing an officer's or auditor's password & Second factor (TOTP), replay protection, wrong codes count toward the lock & MFA suite (RFC 6238 vectors, replay, enrolment, recovery code once)\\
+T & Editing a submitted proposal or final review & Guard triggers, RLS \code{WITH CHECK} & FLOW illegal state changes are refused by the database\\
+T & Partial or double award; budget overspend & \code{record_decision()}, row lock, unique decision, balance constraints & AWARD two proposals compete; duplicate click; F01 remediated; owner-level guard checks\\
+T & SQL injection & Server-side prepared statements, bound parameters, least-privilege account & RLS search with an apostrophe; \code{sqli-demo.txt}\\
+T & Cross-site request forgery & Synchronizer token on every POST, SameSite, logout via POST & AUTH state-changing request without a CSRF token is rejected\\
+R & A user denies an action or an attempt is erased & Append-only audit, denials on a separate writer connection, correlation id per request, each event marked proved or only named & AUDIT denied action recorded although its transaction rolled back; owner cannot UPDATE/DELETE\\
+R & An audit event is forged to frame someone & No privilege on the table for the web account; \code{audit\_append()} needs a valid token for the named actor & IDENT the web account cannot write audit events; \code{deep-db.json} DB05; incident 2\\
+I & Reading another user's proposal or review (IDOR) & PHP ownership checks and RLS & RBAC each role is refused the other roles' pages; RLS unassigned reviewer; pentest IDOR lines\\
+I & Reading review comments from a dump & Authenticated field encryption; key kept apart; key backup separate & DATA review comments are encrypted; key management; recovery drill\\
+I & Credential or key exposure & Hash not selectable; keys in 0600 files outside Git; backup private key custody; second-factor secret encrypted & AUTH runtime cannot read password\_hash; MFA a stolen database password cannot touch a second factor; \code{backup-key-custody.txt}\\
+I & Confidential content leaving by e-mail & Fixed templates without title, abstract, amount, score or outcome & MAIL messages contain no proposal details\\
+D & Locking a victim out of the service & Failures counted per (account, address); no account-wide lock & AUTH a stranger cannot lock the real owner out; F02 retest\\
+D & Flooding the login or exhausting memory with Argon2id & Per-address throttle (HTTP 429, Retry-After) answered before hashing & AUTH HTTP login answers 429; F04 retest: 20 processed, 10 refused\\
+D & Using the system to flood a person with mail & Messages only about the actor's own action, chosen and worded by the database, unique per event & MAIL callers cannot choose, forge or repeat a message\\
+D & Data loss & Encrypted backups, verified restore, key backup & RESTORE suite; \code{recovery-drill.txt}\\
+E & Researcher reaching officer functions & Route permission, RLS, function-level role check & RBAC workflow operations refuse the wrong role; AWARD record\_decision() refuses non-officers\\
+E & Runtime account acting as owner or DBA & Not owner, not superuser, NOBYPASSRLS; DDL refused & RBAC runtime account is refused everything outside its needs\\
+E & A reviewer extends their own deadline, or an officer edits a review & Guard trigger: only an officer moves a deadline, only forwards, nothing else in the same statement & DEADLINE only a grants officer can move a deadline\\
+\bottomrule\end{longtable}\end{center}
+
+%% ====================================================================== 8. AUTHENTICATION DESIGN
+\section{Authentication Design}\label{sec:auth}
+
+\subsection{Mechanism}
+Each person has an individual account (\code{users}), a role and an Argon2id password hash. Login uses a \emph{security-definer helper}, \code{auth_find_credentials(email)}, because the runtime account has no privilege to select \code{password_hash}. For researchers and reviewers a correct password opens the session at once: the session identifier is regenerated (against fixation), a fresh CSRF token is issued and the event \code{auth.login} is recorded. Officers and auditors, and anyone who enrolled, enter a pending state and must present a second factor first (Section~\ref{sec:mfa}). Logout is a POST with a CSRF token and destroys the server-side session. On every later request the user row is read again, so a disabled account or changed role takes effect immediately, not at next login.
+
+\subsection{Plaintext, encryption, hashing and secure password hashing}
+The assignment asks for these four to be distinguished. They answer different questions, and the difference decides what a stolen database is worth.
+\tcap{Plaintext, encryption, hashing and secure password hashing}
+\begin{center}\small
+\begin{longtable}{@{}L{2.2cm}L{4.5cm}L{5.2cm}L{3.0cm}@{}}
+\toprule & \textbf{What it is} & \textbf{Weakness / property} & \textbf{Use here}\\\midrule\endhead
+Plaintext storage & The password itself is stored & Whoever reads the table (backup, SQL injection, DBA) owns every account; reused passwords spread the damage & Never\\
+Encryption & Reversible transformation with a key (two-way) & The key must exist where the data is used, so a compromise of the application also yields the passwords; wrong tool for a secret that must only be \emph{verified} & Used for data that must be read back: review comments\\
+Hashing (plain, e.g.\ SHA-256) & One-way function, fast and unsalted & Not reversible, but billions of guesses per second on a GPU and identical passwords give identical hashes (rainbow tables) & Not used for passwords\\
+Secure password hashing (Argon2id) & Salted, memory-hard, tunable one-way function & Each guess costs memory and time (here 64 MiB, 4 passes, 1 lane); a unique salt per password defeats tables; verification is constant for the legitimate user & All passwords: \code{password_hash(PASSWORD_ARGON2ID)}\\
+\bottomrule\end{longtable}\end{center}
+We chose Argon2id over bcrypt or PBKDF2 because it is memory-hard (it resists GPU and ASIC guessing), it is built into PHP 8.5 and it is the current OWASP recommendation. The test \emph{AUTH passwords are stored as Argon2id hashes, never plaintext} also checks that the hash does not contain the password and that a wrong password does not verify.
+
+\subsection{Sessions and CSRF}
+\tcap{Session and CSRF controls}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.6cm}Y@{}}
+\toprule\textbf{Control} & \textbf{Implementation and reason}\\\midrule
+Cookie & \code{__Host-grants}: the browser refuses it unless Secure, host-only and Path=/; HttpOnly (not readable by script); SameSite=Lax; lifetime 0 (dies with the browser)\\
+Server-side state & The browser holds only a random identifier; strict mode rejects identifiers the server did not issue\\
+Expiry & 20 minutes idle, 8 hours absolute; both enforced on every request and audited (\code{auth.session_expired})\\
+CSRF & Synchronizer token (random 256-bit, \code{hash_equals}) on every state-changing form; state change through GET is impossible (404); a forged POST is refused with 400 and audited\\
+Output and framing & Every dynamic value is HTML-escaped; CSP \code{default-src 'self'} forbids inline script; X-Frame-Options DENY\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Handling failed authentication: policy, trade-offs and remediation of F02--F04}
+The first design locked the \emph{account} for 15 minutes after five failures. The penetration test showed three weaknesses of that policy: any anonymous visitor could lock a known colleague out (F02, availability), a locked account answered about ten times faster than other accounts and therefore revealed its state (F03), and there was no limit per source address (F04). The remediation changes the \emph{unit that is counted}.
+\tcap{Failed-authentication policy after remediation (F02--F04)}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.2cm}L{4.1cm}Y@{}}
+\toprule\textbf{Rule} & \textbf{Parameter} & \textbf{Effect and justification}\\\midrule
+Pair lock & 5 failures for one account from one address in 15 min & The attacker's address is refused for that account; the real owner, signing in from any other address, is unaffected (F02). No account-wide lock remains; \code{users.locked_until} is only an \emph{administrative} lock an operator may set during an incident\\
+Address throttle & 20 failures from one address (any account) in 10 min & HTTP 429 with \code{Retry-After: 600}, answered \emph{before} any hashing, so floods cost almost nothing and cannot exhaust memory (F04)\\
+Equal work & One Argon2id verification on every failed path (unknown, disabled, locked, wrong) & Removes the early return that exposed lock state (F03)\\
+Threshold audit & \code{auth.lockout}, \code{auth.throttle}, \code{auth.suspicious_volume} once per crossing & Visible to the auditor without letting an attacker flood the trail\\
+\bottomrule\end{tabularx}\end{center}
+The counters are stored in \code{login_failures}, which the runtime account cannot read or write: it can only call \code{auth_login_gate}, \code{auth_record_failure} and \code{auth_clear_failures}. \textbf{Trade-offs.} Users behind one university NAT share an address, so a noisy address can throttle colleagues for ten minutes; the thresholds are configuration values in \code{config/config.php}. An attacker with many addresses can still guess slowly against one account (about five guesses per address per 15 minutes); the answer to that residual risk is detection (\code{auth.suspicious_volume} after 20 failures per hour) and, for the roles that move money or read the whole trail, the second factor of Section~\ref{sec:mfa}; researchers and reviewers rely on the throttle and on detection. We deliberately did not trust \code{X-Forwarded-For}: the address is \code{REMOTE\_ADDR}, and a trusted-proxy rule must be defined before any proxy is added.
+
+\diagramx{loginflow}{Login decision flow after remediation (F02--F04). Every path that reaches the password stage performs exactly one Argon2id verification (amber), and only a throttled \emph{source address} is refused early, before any hashing.}{loginflow}
+\shotfig{18-login-throttled-desktop.png}{.36}{Finding F04 seen in the browser: after 20 failed sign-ins from one address the 21st receives HTTP 429 and a message that names no account. The matching auditor view is Figure~\ref{fig:shot-audit}.}{shot-throttle}
+
+\subsection{Second factor for officers and auditors (TOTP)}\label{sec:mfa}
+Officers record awards and auditors read the whole trail, so a stolen or guessed password must not be enough for them. They must present a time-based one-time code (TOTP, RFC 6238: HMAC-SHA1, 30-second steps, 6 digits), which any authenticator app produces. The code is implemented in PHP in about 100 lines and tested against the six RFC vectors. Figure~\ref{fig:mfaflow} shows the sign-in and Table~\ref{tab:mfadesign} the decisions.
+\diagram{mfaflow}{Two-step sign-in. The password is verified exactly as before (throttle first, one Argon2id verification on every failure path); officers and auditors then enter a pending state, enrol an authenticator app on their first sign-in, and are signed in only after a valid, unused code. Every database function involved needs a valid actor token for the same user.}{mfaflow}
+\begin{center}\small\captionof{table}{Second-factor design decisions}\label{tab:mfadesign}
+\begin{tabularx}{\linewidth}{@{}L{3.3cm}Y@{}}
+\toprule\textbf{Decision} & \textbf{Implementation and reason}\\\midrule
+Who & Roles in \code{config/config.php} (\code{officer}, \code{auditor}); anyone who enrolled is asked too. Researchers and reviewers are not asked, a deliberate scope limit\\
+Enrolment & First sign-in shows a setup key and an \code{otpauth://} address (no QR code, to avoid a library); a correct code proves the app works, then the secret is stored and eight recovery codes are shown once\\
+Secret at rest & Encrypted with the field-key keyring (context \code{users.totp:<id>}); the runtime account cannot read the column; recovery codes are Argon2id hashes\\
+Replay protection & The database records the last accepted 30-second step and refuses the same or an older step (\code{mfa\_accept\_step}); the check is atomic\\
+Brute force & A wrong code counts like a wrong password (pair lock, address throttle); five wrong codes abandon the pending sign-in; a pending sign-in expires after five minutes\\
+Bound to the proof & Every \code{mfa\_*} function requires a valid actor token for the same user: a stolen database password cannot enrol, read, replay or reset anybody's factor (test MFA)\\
+Lost phone & One recovery code signs in once and is audited (\code{auth.mfa\_recovery\_used}); an operator can reset a factor with \code{scripts/mfa-reset.sh}, which writes \code{admin.mfa\_reset}\\
+Limit & TOTP can be phished in real time; WebAuthn is the next step (Section~\ref{sec:recs})\\
+\bottomrule\end{tabularx}\end{center}
+\shotpair{20-mfa-challenge-desktop.png}{21-mfa-enrollment-desktop.png}{Left: after the password, an auditor is asked for the second factor and is not signed in (the audit page stays closed). Right: an officer without a second factor is sent to set one up; the setup key shown is a lab value.}{shot-mfa}
+
+%% ====================================================================== 9. RBAC
+\section{RBAC and Access-Control Matrix}\label{sec:rbac}
+
+\subsection{Application permissions per role (Policy.php)}
+Every route names one permission and every workflow operation checks it again before opening a transaction.
+\tcap{Application permissions per role (access-control matrix, application layer)}
+\begin{center}\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule\textbf{Permission} & \textbf{Researcher} & \textbf{Reviewer} & \textbf{Officer} & \textbf{Auditor}\\\midrule
+\code{call.read} & $\bullet$ & & $\bullet$ & \\
+\code{call.manage} (create, edit, close) & & & $\bullet$ & \\
+\code{proposal.read_own} & $\bullet$ & & & \\
+\code{proposal.write_own_draft} & $\bullet$ & & & \\
+\code{proposal.submit} & $\bullet$ & & & \\
+\code{proposal.read_submitted} & & & $\bullet$ & \\
+\code{review.read_assigned} & & $\bullet$ & & \\
+\code{review.write_assigned} & & $\bullet$ & & \\
+\code{review.assign} & & & $\bullet$ & \\
+\code{decision.record} & & & $\bullet$ & \\
+\code{audit.read} & & & & $\bullet$ \\
+\bottomrule\end{tabular}\end{center}
+The test \emph{RBAC human-role permission matrix} asserts this table, and \emph{each role is refused the other roles' pages (HTTP 403, audited)} walks the forbidden routes of every role.
+
+\subsection{Effective access to data (application permission and row-level security together)}
+\tcap{Effective access to data (access-control matrix, data layer)}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.0cm}YYYY@{}}
+\toprule\textbf{Data} & \textbf{Researcher} & \textbf{Reviewer} & \textbf{Officer} & \textbf{Auditor}\\\midrule
+Grant calls & read & read & read, create, edit & ---\\
+Own draft proposal & read, write, submit, delete & --- & --- & ---\\
+Submitted proposal & read own & read if assigned & read all non-draft; move to review or final state through assignment and decision & ---\\
+Review score and comments & --- (no policy at all) & read and write own until final & read all; assign & ---\\
+Decision & read own outcome & --- & read; create \emph{only} through \code{record_decision()} & ---\\
+Audit timeline & --- & --- & --- & read only, no content columns; CSV export of the same filtered view (at most 5\,000 rows), itself audited\\
+Review deadline (\code{due\_at}) & --- & read only (the screen shows it) & extend, only forwards & ---\\
+User accounts & non-secret columns & non-secret columns & non-secret columns & ---\\
+\bottomrule\end{tabularx}\end{center}
+The last row is an accepted compromise: the runtime role reads non-secret user columns because the application lists reviewer names. It is the reason the UNION payload in Section~\ref{sec:sqli} leaked eight accounts; a view with fewer columns is a possible further reduction.
+\shotfig{04-researcher-denied-other-proposal-desktop.png}{.36}{Row-level security and the PHP ownership check seen from the user: a researcher who requests another researcher's proposal receives ``Not found'', the same page as for a missing record, and the attempt is audited (Section~\ref{sec:audit}).}{shot-denied}
+
+\subsection{Database accounts and role assignment}
+\tcap{Database roles and accounts}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.1cm}L{3.2cm}Y@{}}
+\toprule\textbf{Database role} & \textbf{Attributes} & \textbf{Purpose}\\\midrule
+\code{grants_owner} & NOLOGIN, no superuser, no BYPASSRLS & Owns every object; used only for migrations through \code{SET ROLE}\\
+\code{grants_runtime} (group) & NOLOGIN & Holds the application's privileges\\
+\code{grants_app} & LOGIN, member of \code{grants_runtime}, 30 connections & The PHP service; TLS + SCRAM from the compose network only\\
+\code{grants_audit_read} (group), \code{grants_auditor} & LOGIN, 5 connections, \code{default_transaction_read_only} & SELECT on the \code{audit_timeline} view only\\
+\code{grants_audit_writer} (group), \code{grants_audit_write} & LOGIN, 10 connections; no table privilege at all & EXECUTE on \code{audit_append()} only: the audit-writer account for events without an authenticated actor\\
+\code{grants_notifier_group}, \code{grants_notifier} & LOGIN, 3 connections & Reads the outbox and the recipient's address and name, marks messages sent, queues due-date reminders; nothing else\\
+\code{grants_backup_read} (group), \code{grants_backup} & LOGIN, BYPASSRLS, 2 connections & \code{pg_dump} over the local socket; BYPASSRLS is required because \code{pg_dump} refuses to dump rows RLS would hide; it is read-only and not reachable from the network\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Demonstration of CREATE ROLE, GRANT, REVOKE, role assignment and privilege listing}
+\begin{lstlisting}[language=SQLx,caption={database/01\_roles.sql and 04\_grants.sql (excerpts)}]
+CREATE ROLE grants_runtime;  ALTER ROLE grants_runtime NOLOGIN NOSUPERUSER NOBYPASSRLS;
+ALTER ROLE grants_app LOGIN NOSUPERUSER NOBYPASSRLS CONNECTION LIMIT 30 PASSWORD :'app_password';
+GRANT grants_runtime TO grants_app;                       -- role assignment
+REVOKE ALL ON ALL TABLES IN SCHEMA grants FROM PUBLIC, grants_runtime;   -- start from nothing
+GRANT SELECT (id, email, full_name, department, role, is_active, locked_until, last_login_at, created_at)
+      ON users TO grants_runtime;                          -- no password_hash
+GRANT UPDATE (last_login_at) ON users TO grants_runtime;
+GRANT SELECT ON decisions TO grants_runtime;               -- no INSERT: only record_decision()
+-- audit_events: NO privilege for grants_runtime; events only through audit_append() (valid actor token required)
+GRANT EXECUTE ON FUNCTION audit_append(text,text,bigint,text,jsonb,uuid,inet,bigint,text) TO grants_runtime, grants_audit_writer;
+\end{lstlisting}
+PostgreSQL has no \code{SHOW GRANTS}; the equivalents are the \code{psql} meta-commands \code{\textbackslash du} and \code{\textbackslash dp}, captured in \code{docs/evidence/privileges.txt}:
+\begin{lstlisting}
+== \du
+ grants_app         | 30 connections       grants_audit_write | 10 connections   grants_auditor  | 5 connections
+ grants_backup      | Bypass RLS, 2 conn.  grants_notifier    | 3 connections    grants_owner    | Cannot login
+ (and the NOLOGIN groups grants_runtime, grants_audit_read, grants_audit_writer, grants_backup_read, grants_notifier_group)
+== \dp grants.decisions  (excerpt)
+ grants_runtime=r/grants_owner      -- r = SELECT only: no insert, update or delete
+== \dp grants.audit_events
+ (no entry for grants_runtime)       -- the web account has no privilege at all on the trail; it can only call audit_append()
+\end{lstlisting}
+
+\subsection{Privileges of the objects added by release 2}
+\tcap{Access to the objects added by release 2 (data layer)}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.1cm}L{3.0cm}Y@{}}
+\toprule\textbf{Object} & \textbf{Who can reach it} & \textbf{How}\\\midrule
+\code{actor\_key} & schema owner only & Read by the SECURITY DEFINER function \code{actor\_verify\_token()}; no other role has any privilege (test: the runtime and notifier accounts are refused)\\
+\code{audit_events} & nobody directly & Written by \code{audit\_append()} (web account with a valid token; audit writer without) and by \code{record\_decision()}; read through the \code{audit\_timeline} view by the auditor\\
+\code{users.totp\_*}, \code{mfa\_recovery\_codes} & nobody directly & Five \code{mfa\_*} functions, each requiring a valid actor token for the same user\\
+\code{notifications} & notifier (read, mark sent) & Queued by \code{notify\_enqueue()} (token, own action only); reminders queued by the notifier account; the web account has no direct access\\
+\code{reviews.due\_at} & officers (extend) & Column \code{UPDATE} plus policy \code{reviews\_officer\_extend}; the guard trigger allows only a later date by an officer (18 policies in all)\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Privilege testing under the real restricted accounts}
+\texttt{scripts/evidence.sh} sends each statement over TLS from the web container, exactly as the application connects. Figure~\ref{fig:privileges} shows the result: the application account reads nothing without an actor, cannot read hashes or the audit trail, cannot write to it, cannot change decisions or roles, cannot create tables or switch off row-level security; the auditor account reads only the view; the backup account is refused on the network and cannot delete on the socket.
+\termfig{fig-privileges}{Statements tried under the real restricted accounts (long driver messages condensed). Every refusal is SQLSTATE 42501 or a \code{pg\_hba} rejection; the allowed statements are exactly those each account needs. Source: \code{privileges.txt}.}{privileges}
+A rolled-back revocation demonstration in the same file shows the effect of \code{REVOKE}: before revoking, \code{has_table_privilege('grants_app','grants.proposals','INSERT')} is true; after \code{REVOKE INSERT ... FROM grants_runtime} it is false; and after \code{REVOKE grants_runtime FROM grants_app} the account can no longer read proposals at all.
+
+%% ====================================================================== 10. LEAST PRIVILEGE
+\section{Least-Privilege Implementation}\label{sec:lp}
+The principle is implemented \emph{by construction}: every grant is revoked first, then only what a role needs is granted back (\code{04_grants.sql} is idempotent and is re-applied last, so the privilege model is reproducible on a new, existing or restored database). The table lists what was withheld and why.
+\tcap{Privileges withheld from the application and why}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{4.6cm}YL{2.9cm}@{}}
+\toprule\textbf{Privilege withheld from the application} & \textbf{Reason (threat prevented)} & \textbf{Test}\\\midrule
+Ownership, superuser, CREATEDB/ROLE, BYPASSRLS & A SQL injection or stolen credential cannot change structure or switch off RLS & RBAC runtime account\\
+\code{SELECT users.password_hash} & Hashes are verified through a one-row helper, not browsable; O01 documents the residual & AUTH cannot read hash\\
+\code{INSERT users}, \code{DELETE users}, \code{UPDATE users.role} & Accounts and roles are administrative, not application actions & RBAC refused list\\
+\code{INSERT decisions}, \code{UPDATE grant_calls.remaining_budget} & Only the atomic award function may move money (F01) & AWARD F01 remediated\\
+\code{UPDATE/DELETE decisions}, \code{DELETE reviews} & Decisions are final; reviews are evidence & RBAC refused list\\
+\code{INSERT/SELECT/UPDATE/DELETE audit_events} & Append-only evidence; a compromised service must not be able to write or forge a record, nor read what was written (O03) & RBAC refused list; IDENT\\
+\code{SELECT actor_key}, the HMAC helper, the MFA columns and tables, \code{notifications} & The key that proves identity, the second-factor secrets and the outbox are reachable only through token-checked functions & RBAC refused list; MFA; MAIL\\
+\code{UPDATE users.locked_until}, any access to \code{login_failures} & A compromised service must not unlock accounts or clear the throttle & RBAC refused list\\
+\code{DELETE proposals} except own drafts; update of owner, call, currency & Enforced by RLS plus guard trigger & FLOW, RLS suites\\
+Network access for the backup account & Dumps are taken on the local socket only (\code{pg_hba.conf}) & RBAC backup account\\
+\bottomrule\end{tabularx}\end{center}
+\textbf{Other least-privilege measures.} The runtime account has a connection limit (30), a statement timeout (15 s), a lock timeout (10 s) and an idle-in-transaction timeout (30 s), so a stuck or malicious session cannot hold resources. \code{SECURITY DEFINER} functions (\code{current_actor_id}, \code{current_actor_role}, \code{actor_verify_token}, \code{is_assigned_reviewer}, \code{owns_proposal}, \code{auth_find_credentials}, \code{record_decision}, \code{audit_append}, the \code{auth_*} throttle functions, the \code{mfa_*} functions, \code{notify_enqueue}) pin \code{search_path} to \code{grants, pg_temp}, are revoked from PUBLIC and granted only to the group that needs them. The web container runs as an unprivileged user, with the code mounted read-only and only \code{logs/} writable.
+
+\subsection{Most important example: from three privileges to one door}
+Before remediation the runtime account held \code{INSERT} on \code{decisions}, \code{UPDATE(remaining\_budget)} on \code{grant_calls} and \code{UPDATE(status)} on \code{proposals}; PHP used them correctly inside one locked transaction, but nothing \emph{forced} a caller through that code. After remediation the first two are gone. The function below is the only way to create a decision:
+\begin{lstlisting}[language=SQLx,caption={database/05\_remediation.sql: record\_decision() (condensed)}]
+CREATE FUNCTION record_decision(p_proposal_id bigint, p_outcome text, p_amount numeric, p_rationale text,
+                                p_correlation uuid DEFAULT NULL, p_ip inet DEFAULT NULL, OUT decision_id bigint, OUT remaining numeric)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = grants, pg_temp AS $$
+  IF current_actor_role() IS DISTINCT FROM 'officer' THEN RAISE EXCEPTION ... USING ERRCODE = 'insufficient_privilege'; END IF;
+  SELECT remaining_budget INTO v_budget FROM grant_calls WHERE id = v_prop.call_id FOR NO KEY UPDATE;  -- serialize per call
+  SELECT * INTO v_prop FROM proposals WHERE id = p_proposal_id;                 -- re-read AFTER the lock
+  -- already decided? under review? completed review? within request? within budget? (each refusal: SQLSTATE GR001)
+  INSERT INTO decisions ...;  UPDATE grant_calls SET remaining_budget = remaining_budget - v_amount ...;
+  UPDATE proposals SET status = p_outcome ...;  INSERT INTO audit_events ... 'decision.record' ...;   -- all or nothing
+$$;
+\end{lstlisting}
+Because the function performs the audit insert itself, a decision made through any route, including raw SQL, always leaves its audit event. Figure~\ref{fig:award} follows one click from the browser to the database.
+\diagram{award}{Sequence of an award. PHP validates and opens the actor transaction; one database function locks, re-checks and writes everything or nothing; a refusal is recorded on the second connection after the rollback.}{award}
+
+\subsection{Second example: from a claimed identity to a proved one (O02, O03)}
+Until release 2 the web service \emph{stated} who was acting (\code{app.user_id}) and the runtime account could append audit events, so anyone holding the database password could claim to be an officer and forge a record. Now the proof is a token the database verifies itself, and the audit trail has a single door:
+\begin{lstlisting}[language=SQLx,caption={database/06\_identity\_and\_audit.sql (condensed)}]
+-- v1.<user id>.<expiry>.<nonce>.<HMAC-SHA256(key, "v1|<id>|<expiry>|<nonce>")>   key: secrets/actor.key == table actor_key
+CREATE FUNCTION actor_verify_token(p_token text) RETURNS bigint ... SECURITY DEFINER AS $$
+  -- format ok? not expired, at most 600 s of life? HMAC recomputed with actor_key equal (compared as HMACs)? -> user id, else NULL
+$$;
+CREATE OR REPLACE FUNCTION current_actor_id() RETURNS bigint LANGUAGE sql STABLE SECURITY DEFINER
+  AS $$ SELECT actor_verify_token(current_setting('app.actor', true)) $$;       -- app.user_id is no longer read
+CREATE FUNCTION audit_append(p_action text, ..., p_claimed_actor bigint, p_token text) RETURNS bigint ... SECURITY DEFINER AS $$
+  IF valid token for the named actor THEN actor_verified := true            -- role read from users, never supplied
+  ELSIF session_user is a member of grants_audit_writer AND (action ~ '^(auth|request)\.' OR outcome = 'denied') THEN actor_verified := false
+  ELSE RAISE EXCEPTION 'an audit event needs a valid actor token' USING ERRCODE = 'insufficient_privilege';
+$$;
+\end{lstlisting}
+The HMAC is written in SQL from the built-in \code{sha256()} (no extension) and is checked against two RFC 4231 test vectors in the owner-level checks, so the PHP side (\code{hash\_hmac}) and the SQL side are proved to agree. The residual risk is stated in Section~\ref{sec:incident}: whoever takes the actor key (the web process) can mint tokens again.
+
+\subsection{Review deadlines: a rule the database enforces}
+\diagram{deadline}{Review deadline rule. Before \code{due\_at} the reviewer may save and submit; after it the guard trigger refuses both whatever code sends them; only a grants officer can move the date, and only later. Tests: DEADLINE (a fixture review is already overdue when the suite runs).}{deadline}
+
+%% ====================================================================== 11. VULNERABILITY ANALYSIS
+\section{Vulnerability Analysis}\label{sec:vuln}
+
+\subsection{Method and scope}
+Testing was performed only against the group's own fictional system (assignment rules 5 and 6). On 11 November 2026 we attacked a \emph{separate disposable Docker stack} (own project name, network, volumes, keys and passwords) on localhost, in three layers: a black-box HTTP script, a TLS-verified authenticated HTTP harness (positive controls, timing, throttling) and a restricted-SQL script that acts as an attacker who holds the runtime database credential. A denial is interpreted only after a positive control proved that the account is valid and the resource exists. After release 2 the restricted-SQL script was updated: it now models an attacker who holds \emph{only} the database password (claimed identity, forged token, forged audit event) as well as the original F01 probe. Administrative access was used to prepare the lab, clear counters and collect evidence, never as the attack step. The campaign followed the relevant areas of the OWASP Web Security Testing Guide; it is tailored, not a claim of full coverage. The commands and per-family results are in Appendix~B.
+
+\subsection{Findings and their chain: vulnerability, impact, root cause, mitigation, verification}
+\tcap{Findings: vulnerability, impact, root cause, mitigation, verification}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{2.57cm}L{2.21cm}L{2.74cm}L{3.45cm}L{3.45cm}@{}}
+\toprule\textbf{Vulnerability} & \textbf{Impact} & \textbf{Root cause} & \textbf{Mitigation (17 Nov)} & \textbf{Verification (same probe replayed)}\\\midrule\endhead
+\textbf{F01} A decision row could be committed alone: 1.00 awarded, balance still 600\,000.00, proposal still under review (\finding{High}, integrity) & Allocation invariant broken: total $-$ remaining $-$ awards = $-1.00$; money and audit out of step & Runtime had separate privileges (INSERT decisions, UPDATE remaining\_budget, UPDATE status); PHP did all three correctly but the database did not force callers through that path & \code{record_decision()} does lock, checks, decision, balance, status and audit atomically; INSERT on \code{decisions} and UPDATE of \code{remaining_budget} revoked & \code{deep-db.json} DB04: lone INSERT and lone balance UPDATE refused (42501); a researcher calling the function refused (42501); the single door award keeps the invariant difference at 0.00; two concurrent awards still yield one winner\\
+\textbf{F02} Anonymous failures locked a known account (\finding{Medium}, availability) & A visitor knowing an e-mail denies that user access for 15 minutes at a time & Failures counted per account, not per source & Counted per (account, address); no account-wide lock; \code{locked_until} administrative only & \code{auth-retest.json} F02: five failures give 401; account-wide lock not set; attacker address \code{pair\_locked}; owner's other address \code{open}\\
+\textbf{F03} Locked account answered in 28 ms vs 254 ms (\finding{Low--Medium}) & Reveals that an account exists and is locked (not passwords) & Early return skipped the Argon2id verification & One verification on every failed path (real or dummy hash) & F03: medians 151.6 / 147.8 / 148.7 ms, ratio 1.03 (was 9.1); test \emph{unknown, wrong-password and locked answers cost the same}\\
+\textbf{F04} 30 rapid attempts on different accounts all processed (\finding{Medium}) & Unbounded guessing and Argon2id memory pressure from one source & No limit per source address & Per-address throttle: 20 failures / 10 min then HTTP 429 + Retry-After, before hashing & F04: 20 processed (401), 10 refused (429), \code{Retry-After: 600}; a correct password from a throttled address is refused too\\
+\textbf{F05} \code{Permissions-Policy} missing (\finding{Low}) & Browser features not explicitly disabled & Header never set & Permissions-Policy, Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy added & F05: headers present; test \emph{security headers include Permissions-Policy}\\
+\textbf{O02} The actor id was self-asserted: with only the database password an attacker saw 18 proposals as an officer (\finding{Medium}) & Impersonation of any user at SQL level; awarding money; reading everything an officer reads & Identity was a transaction variable the caller could set & Signed actor token verified by the database; \code{app.user_id} ignored; key only in the web process and an owner-only table & \code{deep-db.json} DB03: claimed officer sees 0 proposals; test \emph{a forged, expired, altered or legacy identity claim yields no identity at all}; incident 2 run again\\
+\textbf{O03} The web account could insert audit rows: a forged event framing a researcher was shown to the auditor (\finding{Medium}) & Misleading evidence; an attacker could write plausible history & Runtime held INSERT on \code{audit\_events}, and any actor could be named & No privilege on the table; \code{audit\_append()} needs a valid token for a named actor; a separate account writes unauthenticated events, flagged unverified & \code{deep-db.json} DB05: direct INSERT and \code{audit\_append()} without a token both 42501, 0 forged rows visible\\
+\bottomrule\end{longtable}\end{center}
+
+\diagram{beforeafter}{Findings F01--F05 before (11 November) and after (17 November) remediation. F03: medians of 20 samples per class, ratio 9.1 before and 1.02 after; F04: 30 of 30 attempts processed before, 20 processed and 10 refused after; F02 and F01 as in the text. Absolute times differ between the two sessions; the finding concerns the \emph{spread between classes}. Sources: \code{timing.csv}, \code{auth-retest.json}, \code{deep-db.json}.}{beforeafter}
+
+\subsection{Conditional observations (trust boundaries)}
+These are \emph{not} HTTP entry points. They define what the architecture can and cannot promise: the database limits a \emph{correct} service, it does not isolate a fully compromised one. Release 2 closed O02 and O03 for the threat of a stolen database password; O01 stays open by design.
+\tcap{Conditional observations O01--O03}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{0.9cm}YYL{3.4cm}@{}}
+\toprule\textbf{ID} & \textbf{Observation} & \textbf{Status and what bounds it} & \textbf{Evidence}\\\midrule
+O01 & The login helper returns the hash for the e-mail being authenticated; a compromised runtime account can call it for every user & \accepted. Needed to verify passwords without table access; values are Argon2id, so recovering a password offline is expensive; the second factor still stands in front of the privileged roles & \code{deep-db.json} DB02: 7 Argon2id hashes obtainable (the eighth account is a test fixture without a real hash); values not saved\\
+O02 & The actor id was self-asserted (\code{app.user_id}) & \fixed for a stolen \emph{database} password: identity is a signed token the database verifies. Residual: a compromise of the web process holds the key (Section~\ref{sec:incident}) & DB03; \code{incident-privileged.txt} against \code{incident-privileged-before-binding.txt}\\
+O03 & The runtime account could append (forge) audit events & \fixed: no privilege on the table; token required for any named actor; unauthenticated events only from a separate account and marked unverified & DB05; IDENT suite\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{What was tested and resisted}
+The black-box rerun of 17 November recorded 122 resisted checks and no finding. They cover: ports and banners (4), exposure and files (14), HTTP methods (5), TLS (4), headers (6), authentication and enumeration (10), sessions (5), CSRF (4), IDOR (9), privilege escalation (11), mass assignment and input tampering (11), SQL injection (13), XSS (3), brute force and throttling (13), timing (2), Host header (1), database reachability from the web network (5) and integrity after the run (2). Nothing proved cross-user disclosure, XSS execution, a login bypass or an injectable route. The checks include repeated variants of the same endpoints and must not be read as 122 distinct vulnerability classes.
+
+%% ====================================================================== 12. SQL INJECTION
+\section{SQL Injection Investigation and Remediation}\label{sec:sqli}
+
+\subsection{The controlled vulnerable component}
+The delivered application has no injectable route (its queries are parameterized). To satisfy Phases 4 and 5, and to show \emph{impact} rather than merely a quote error, we wrote a deliberately unsafe search as a command-line component, \code{scripts/sqli-demo.php}. It runs only with \code{PENTEST\_LAB=1} against the disposable \code{grants_test} database, uses the \emph{real} restricted \code{grants_app} account, acts as an authenticated researcher, and is never reachable from the web. The unsafe statement concatenates the input:
+\begin{lstlisting}[language=SQLx]
+-- unsafe: user text becomes part of the statement
+SELECT id, title FROM proposals WHERE owner_id = <actor> AND title ILIKE '%<INPUT>%' ORDER BY id
+-- fixed: same statement, value bound as a parameter ($2) and wildcards escaped
+SELECT id, title FROM proposals WHERE owner_id = $1 AND title ILIKE $2 ESCAPE '\' ORDER BY id
+\end{lstlisting}
+
+\subsection{Before remediation: attack, result, impact}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{0.64cm}L{4.30cm}L{4.58cm}L{5.13cm}@{}}
+\toprule & \textbf{Payload (goal)} & \textbf{Result on the unsafe query} & \textbf{After the fix (same payload)}\\\midrule\endhead
+A1 & \code{' OR TRUE -- } (bypass the filter) & 15 rows, all owned by the actor: RLS still applies & 0 rows, no error\\
+A2 & \code{UNION SELECT ... FROM users} (read every account) & \finding{8 accounts leaked}: e-mail, name, role, including both officers and the auditor (roles: 1 auditor, 2 officers, 2 researchers, 3 reviewers) & 0 rows, no error\\
+A3 & \code{UNION SELECT password_hash FROM users} & \resisted{Refused, 42501}: column privilege & 0 rows, no error\\
+A4 & \code{UNION SELECT ... FROM audit_events} & \resisted{Refused, 42501}: no SELECT privilege & 0 rows, no error\\
+A5 & \code{UNION} other researchers' proposals & 0 rows: RLS & 0 rows, no error\\
+A6 & \code{UNION SELECT comments_enc FROM reviews} & 0 rows: no RLS policy for researchers & 0 rows, no error\\
+A7 & stacked: lock all officers (\code{UPDATE users SET locked\_until}) & Refused, 42601: prepared statements reject multiple commands; as plain SQL it is refused again by privilege (42501) & 0 rows, no error\\
+A8 & stacked: \code{DELETE FROM decisions} & Refused (42601); as plain SQL, 42501 & 0 rows, no error\\
+A9 & stacked: \code{UPDATE grant\_calls SET remaining\_budget = 0} & Refused (42601); as plain SQL, 42501 & 0 rows, no error\\
+\bottomrule\end{longtable}\end{center}
+\textbf{Security impact.} A researcher who finds such a flaw obtains the identity of every account, including the officers and the auditor: a confidentiality breach and a precise map for phishing or targeted login attacks. The same injection could \emph{not} read password hashes, the audit trail, other researchers' proposals or any review comment, and could not tamper with accounts, decisions or budgets. That ceiling is set by the privilege model of Sections~\ref{sec:rbac} and~\ref{sec:lp}, not by the application code, which is the point of defence in depth. (A smaller first demonstration on 11 November returned only the actor's three own rows with the old two-column query; the lab was extended to show real impact.)
+
+\termfig{fig-sqli-before}{The injection laboratory before the fix (condensed). The UNION payload obtains eight accounts including every officer and the auditor; hashes and the audit trail are refused by privileges; the stacked-statement payloads are refused twice. Source: \code{sqli-demo.txt}.}{sqlibefore}
+
+\subsection{Root cause}
+The statement text is built from user input, so the input can change the \emph{grammar} of the statement (a quote, a \code{UNION}, a comment marker). Blacklists and escaping functions do not fix this because the database still receives one string in which code and data are mixed.
+
+\subsection{Remediation and why it prevents the vulnerability}
+\begin{itemize}
+\item \textbf{Parameterized queries with server-side prepared statements.} PDO is configured with \code{ATTR\_EMULATE\_PREPARES = false}: the statement is parsed by PostgreSQL first and the value travels separately, so it can only ever be a value. This is a structural fix, not a filter. As a side effect the server refuses stacked statements (A7--A9).
+\item \textbf{Server-side input validation.} Titles, amounts (\code{Money::parse}), identifiers (route placeholders match digits only), dates and statuses are validated; LIKE wildcards in a search are escaped so \code{\%} and \code{\_} are literal.
+\item \textbf{Secure error handling.} A database error never reaches the browser: details go to a private log and the user sees a correlation reference.
+\item \textbf{Least-privileged application account} and row-level security, which bounded the damage in A3--A9 even while the code was vulnerable.
+\end{itemize}
+
+\subsection{Verification}
+The same nine payloads, run through the parameterized function, return 0 rows and no error; a legitimate title containing an apostrophe (\emph{Children's}) returns 1 row. The regression test \emph{RLS search with an apostrophe returns only authorized records (injection regression)} keeps the legitimate case working, and the live application resisted 13 SQL-injection variants in its search box and audit filters with no foreign row, no error and no delay (\code{pg\_sleep} did not run). Evidence: \code{docs/evidence/sqli-demo.txt} (Appendix~D). The terminal output of the second half, the same nine payloads returning 0 rows, is Figure~\ref{fig:sqliafter} (Appendix~E).
+
+%% ====================================================================== 13. SENSITIVE DATA
+\section{Sensitive Data Protection}\label{sec:data}
+
+\subsection{What needs extra protection, and why}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.5cm}YL{3.4cm}@{}}
+\toprule\textbf{Data} & \textbf{Justification and mechanism} & \textbf{Where described}\\\midrule
+Passwords & A leaked table would compromise every account and, through password reuse, other systems: Argon2id hash, never readable by the runtime account & Section~\ref{sec:auth}\\
+Review comments & Candid peer-review notes are the most sensitive text in the system; a leak harms reviewers and applicants: authenticated encryption in PHP, key outside the database & This section\\
+Funding amounts and decisions & Public money: integrity matters more than secrecy: constraints, one atomic function, append-only audit & Sections~\ref{sec:lp}, \ref{sec:audit}\\
+Proposals & Confidential but \emph{operational}: officers must search and display them, so they are protected by RLS and immutability rather than encryption (encrypted columns cannot be searched with \code{ILIKE}) & Section~\ref{sec:rbac}\\
+Second-factor secrets & A leaked TOTP secret would defeat the second factor for that account: encrypted with the field keyring, never readable by the runtime account, replay protection, recovery codes only as Argon2id hashes & Section~\ref{sec:mfa}\\
+The actor key & It proves identity to the database: held by the web process and an owner-only table, never in a query result or a log & Section~\ref{sec:arch}\\
+E-mail content & A message crosses servers outside our control: fixed templates with only ``something needs you'' and a link, never a title, abstract, amount, score or outcome & This section\\
+Backups and keys & A backup holds everything; keys unlock it: public-key encryption, separate key backup, custody of the private key & Section~\ref{sec:backup}\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Data at rest: field encryption and key management}
+Review comments are encrypted \emph{before} they reach PostgreSQL with XChaCha20-Poly1305 (libsodium AEAD), so a database dump, a backup or a DBA session shows only ciphertext. A random 24-byte nonce is used for every encryption. The \emph{context} (for example \code{reviews.comments:42}) and the header (version and key id) are authenticated associated data: a ciphertext copied onto another row, or relabelled with another key id, fails to decrypt (tests \emph{DATA review comments are encrypted at rest and bound to their row} and \emph{key management\ldots tampered headers}).
+
+Key management is a lifecycle, not a file. The keyring (\code{secrets/field.key}, mode 0600) holds one key per line as \code{<id>:<base64>}; the first line is the active key, all lines can decrypt, and every stored value names its key (\code{v2:<id>:<payload>}). The original single-key format (\code{v1:}) is still readable as key \code{k1}.
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{2.6cm}Y@{}}
+\toprule\textbf{Principle} & \textbf{Implementation and evidence}\\\midrule
+Generation & 256 random bits from \code{openssl rand}, by \code{setup.sh} or \code{rotate-field-key.sh add}\\
+Storage & File outside the repository and the web root, mode 0600, mounted read-only; never in SQL, logs or the database\\
+Separation & The key lives apart from the data it protects; the backup holds the ciphertext and the key backup is a \emph{separate file} (\code{*.fieldkey.gpg}) to be stored apart\\
+Rotation & \code{add} a key, then \code{reencrypt}: one transaction rewrites every comment under the new key and writes the audit event \code{admin.rotate_field_key}; nothing breaks in between (old values still decrypt)\\
+Retirement & Refused while any row still uses the old key (``3 row(s) still use key k2''); allowed afterwards\\
+Backup and recovery & Keyring backup encrypted to the backup public key; the drill proves the decrypted copy is identical to the live keyring\\
+Evidence & \code{key-rotation.txt}: k2 $\rightarrow$ k3, 3 of 3 comments re-encrypted, retirement refused then accepted, rotation visible to the auditor\\
+\bottomrule\end{tabularx}\end{center}
+
+\diagram{keylife}{Key lifecycle. Rotation proceeds without a flag day and retirement is refused while rows depend on a key; the keyring is backed up as a separate file, and the backup private key can leave the backup host (evidence: Appendix~E).}{keylife}
+
+\subsection{Custody of the backup private key}
+Taking backups needs only the \emph{public} key. The private key can read every backup, so \code{scripts/backup-key.sh} puts a random passphrase on it, exports it for the restore team, and can delete it from the backup host. \code{backup-key-custody.txt} shows, on a temporary copy of the keyring: decryption without the passphrase fails (``No passphrase given''); after export and removal the host can still \emph{encrypt} new backups but can no longer \emph{read} them (``No secret key''); and a restore on a clean workstation succeeds once the key file and passphrase are brought by the custodians.
+
+\subsection{Minimising what an e-mail can leak}
+E-mail is the one channel that leaves our infrastructure. A message is queued by the database function \code{notify\_enqueue()} in the same transaction as the change; the function needs a valid actor token, lets a user queue a message only about their \emph{own} action (an officer who assigned a review, a reviewer who submitted one, an officer who decided a proposal), chooses the recipient from the database relations and renders the text from a fixed template. A message therefore says, for example, ``A decision has been recorded on your proposal'' with a link; it never carries the decision, a title, an abstract, an amount or a score (test MAIL: the body contains none of them). The unique key per (kind, subject, recipient) keeps anyone from using the function to flood a person. Delivery is done by a separate container with its own account that can read only the outbox and the recipient's address and name (Figure~\ref{fig:outbox}); header-injection checks refuse a line break in any header value; SMTP credentials are sent only over TLS and certificates are verified. The default transport writes \code{.eml} files, so nothing leaves the lab machine unless an operator configures SMTP.
+\diagram{outbox}{E-mail notifications through a database outbox. The message is queued in the business transaction, addressed and worded by the database, and delivered by a separate low-privilege service; reminders are queued 48 hours before a deadline and once it has passed.}{outbox}
+
+\subsection{Data in transit}
+The browser connects over TLS 1.2/1.3 only (TLS 1.1 refused, HSTS one year, HTTP redirects to HTTPS). The application connects to PostgreSQL with \code{sslmode=verify-full} against the database's own certificate: the connection is encrypted \emph{and} the server's identity is checked. The evidence file records protocol TLSv1.3 with \code{TLS\_AES\_256\_GCM\_SHA384}; \code{hostssl} lines in \code{pg_hba.conf} refuse any non-TLS connection.
+
+\subsection{Honest limits}
+Proposal text is protected by access control, not by encryption; the PostgreSQL data directory is not encrypted at volume level (disk encryption is a host responsibility); the lab certificates are self-signed; and the keyring, the actor key, the private backup key and the passphrase file all start on one lab host, so the custody separation is demonstrated, not enforced by the environment.
+
+%% ====================================================================== 14. AUDITING
+\section{Auditing and Monitoring}\label{sec:audit}
+
+\subsection{What is recorded}
+\tcap{Audited activities and their event names}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{4.3cm}Y@{}}
+\toprule\textbf{Assignment activity} & \textbf{Events (action names)}\\\midrule
+Successful login & \code{auth.login} (success, with its \code{method}: password, totp, recovery\_code or enrollment), \code{auth.logout}, \code{auth.session_expired}\\
+Failed login & \code{auth.login} (denied) with reason: \code{unknown_account}, \code{bad_password}, \code{bad_mfa}, \code{mfa_replay}, \code{account_disabled}, \code{account_locked}; threshold events \code{auth.lockout}, \code{auth.throttle}, \code{auth.suspicious_volume}\\
+Access to sensitive information & \code{proposal.view}, \code{review.view} (success and denied); \code{request.forbidden} for a wrong-role page; \code{request.csrf_rejected}\\
+Record modification & \code{proposal.create}, \code{proposal.update}, \code{proposal.submit}, \code{review.assign}, \code{review.extend_deadline}, \code{review.save_draft}, \code{review.submit}, \code{decision.record}\\
+Record deletion & \code{proposal.delete} (drafts only)\\
+Administrative actions & \code{call.create}, \code{call.update}, \code{auth.mfa\_enrolled}, \code{auth.mfa\_recovery\_used}, \code{audit.view}, \code{audit.export}, and the operator events \code{admin.rotate\_field\_key} and \code{admin.mfa\_reset} (written by the tools)\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Answering who, what, when, which resource, and whether it succeeded}
+Each row of \code{audit_events} carries: \emph{who} (\code{actor_id}, \code{actor_role}, the role at that moment); \emph{what} (\code{action}); \emph{when} (\code{occurred_at}, wall-clock UTC, not the transaction start); \emph{which resource} (\code{resource_type}, \code{resource_id}); \emph{outcome} (\code{success}, \code{denied}, \code{failure}); plus a per-request \code{correlation_id}, the \code{source_ip}, \code{actor\_verified} (proved by a token, or only named) and a small \code{details} document (identifiers, reasons, amounts, never proposal text or comments; test \emph{no proposal text or review comment ever enters the audit trail}).
+
+\subsection{Design and justification}
+\begin{itemize}
+\item \textbf{Success events commit with the change} (same transaction), so a change without its record, or a record without its change, is impossible; for awards the database function writes the event itself.
+\item \textbf{One door, two accounts} (Figure~\ref{fig:auditpaths}). Events are written only through \code{audit\_append()}. The web account has no privilege on the table; an event that \emph{names an actor} needs a valid actor token for that actor, and the role is read from \code{users}. Events with no authenticated actor (failed sign-ins, throttling, CSRF rejections) and refusals are written by a separate account, \code{grants_audit_write}, which has no table privilege; the database flags them \code{actor\_verified = false}, and the auditor screen shows ``(unverified)''. A forged ``success'' for a decision or a deletion cannot be written without proof (closes O03).
+\item \textbf{Denials and authentication outcomes use a separate autocommit connection}, so they persist when the refused business transaction rolls back (test \emph{a denied action is recorded although its transaction rolled back}).
+\item \textbf{Append-only}: nobody holds UPDATE, DELETE or TRUNCATE; triggers refuse them even for the schema owner.
+\item \textbf{The auditor reads a view} (\code{audit_timeline}) through a read-only account; the page filters by outcome, action, resource and request id, shows no content, and offers a CSV export of the same filtered view (at most 5\,000 rows, formula-neutralised for spreadsheets, a server-chosen file name); reading and exporting are themselves audited (\code{audit.view}, \code{audit.export}).
+\item \textbf{Threshold events are written once per crossing}, so an attacker cannot use the audit trail as a flood target.
+\end{itemize}
+
+\diagram{auditpaths}{Audit write paths. Both accounts reach the trail only through \code{audit\_append()}; a valid token for the named actor makes an event \emph{verified}; the audit writer can add only unauthenticated or refused events, flagged \emph{unverified}; everything else is refused.}{auditpaths}
+\shotpair{16-auditor-filter-denied-desktop.png}{19-auditor-throttle-event-desktop.png}{The auditor's view. Left: filtering by outcome isolates the denied events (a researcher's refused read of proposal \#3). Right: the login throttle appears as a single \code{auth.throttle} event, not one event per refused request. Both screens show metadata only.}{shot-audit}
+
+\subsection{Using the records to detect and investigate suspicious activity}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{4.2cm}Y@{}}
+\toprule\textbf{Signal} & \textbf{How to find it}\\\midrule
+Probing by a valid user & Several \code{request.forbidden} or denied \code{review.view} events from one actor within minutes (incident 1)\\
+Guessing or stuffing & \code{auth.login} denied bursts per address; \code{auth.throttle}; \code{auth.suspicious_volume} after 20 failures per account per hour\\
+Events the application did not write & Check the \code{actor\_verified} column and the anomaly query \code{WHERE correlation\_id IS NULL OR source\_ip IS NULL} (every genuine event carries both). Before release 2 this caught the forged event and the out-of-band award in incident 2; after it the query returns nothing, because those events can no longer be written\\
+Activity outside the application & PostgreSQL server log (\code{log_connections}, \code{log_disconnections}, errors with the failing statement, DDL): unusual \code{application_name}, connection pid, \code{permission denied} bursts\\
+\bottomrule\end{tabularx}\end{center}
+\textbf{Limits.} A PostgreSQL superuser can still disable the triggers, so the trail is tamper-\emph{resistant}, not tamper-\emph{evident} (no hash chain); \code{pgaudit} is not installed, so a successful read by an out-of-band session leaves no application event (refusals do appear in the server log); and the trail grows without a retention policy (Section~\ref{sec:recs}).
+
+%% ====================================================================== 15. BACKUP AND RECOVERY
+\section{Backup and Recovery}\label{sec:backup}
+
+\subsection{Strategy}
+\tcap{Backup strategy}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.3cm}Y@{}}
+\toprule\textbf{Element} & \textbf{Choice and justification}\\\midrule
+Method & Logical backup: \code{pg_dump -Fc} as the read-only \code{grants_backup} account on the local socket, piped into \code{gpg --encrypt} (public key). The plaintext dump never touches the disk\\
+Integrity & SHA-256 file written next to every archive and checked before restore\\
+Keys & Field-key backup as a separate encrypted file; backup private key protected by a passphrase and kept by the restore team (Section~\ref{sec:data})\\
+Restore target & Always a \emph{separate} database (\code{grants_restore}, \code{grants_drill}); restore refuses the live name\\
+What a dump contains and does not contain & It \emph{does} contain \code{actor\_key} and the encrypted TOTP secrets, which is why it is encrypted and why the key-backup custody matters. It does not contain roles and database-level ACLs: \code{restore.sh} re-applies \code{01_roles.sql} and \code{00_database.sql} first, then restores schema, data, privileges and policies\\
+Recovery point & The time of the last backup: there is no WAL archiving (continuous archiving is a recommendation)\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Procedure}
+\begin{lstlisting}[language=bash]
+scripts/backup.sh grants                       # backups/grants-<UTC>.dump.gpg (+ .sha256, + .fieldkey.gpg)
+scripts/restore.sh backups/<file>.dump.gpg grants_restore
+scripts/recovery-drill.sh                      # backup -> simulated loss -> timed restore -> verification
+\end{lstlisting}
+
+\diagram{backupflow}{Backup, controlled loss and recovery. The loss is simulated on a disposable copy only; the live database is untouched. Evidence: Figure~\ref{fig:recovery} (Appendix~E).}{backupflow}
+
+\subsection{Controlled loss and recovery (recovery drill of 17 November 2026)}
+The scenario is the one in the assignment: a critical table is lost. The drill destroys the \emph{disposable copy} with \code{DROP SCHEMA grants CASCADE} (1 schema and 36 objects, 0 tables left) while the live database stays untouched (10 tables), restores it from the encrypted archive and verifies the result.
+\tcap{Recovery drill results}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{4.3cm}Y@{}}
+\toprule\textbf{Check} & \textbf{Result}\\\midrule
+Archive without the key & \code{pg_restore} cannot read it; 0 plaintext markers (PGDMP header, an e-mail, a title)\\
+Timed recovery & restored in 0.8 seconds\\
+Data integrity & users 6, calls 2, proposals 6, reviews 4, decisions 3, audit events 246: row counts and MD5 over all rows \textbf{match} for every table; remaining funds 450\,000.00 and 195\,000.00 match\\
+Privileges and policies & 39 privilege and policy lines identical to the source (table grants, column grants, RLS policies)\\
+Behaviour as the restricted accounts & 8 checks, 28 assertions pass: RLS fails closed, a self-asserted identity still shows nothing and a valid token still proves one (the actor key was restored with the data), the web account still cannot write audit events, the officer is still enrolled in two-step sign-in, the outbox is readable by the notifier, researchers see only their own proposals, the runtime account still cannot read hashes or delete audit events, direct decision inserts and balance edits are refused, the officer's award and balance are as expected, comments decrypt with the separately stored key, a user signs in with the original password\\
+Field-key backup & checksum OK; the decrypted copy is identical to the live keyring (ids \code{k3 k1})\\
+\bottomrule\end{tabularx}\end{center}
+This is stronger than showing that a backup file exists, as the assignment requires: the recovered database was exercised through the application's own accounts and the privilege model was proven to have come back with the data.
+
+\textbf{Limits.} The measured restore time is for the small lab data set; real times scale with data. Backups are kept on the same host (an off-site copy is a recommendation), and the backup is only as available as the people who hold the private key and its passphrase.
+%% ====================================================================== 16. HARDENING
+\section{Database Hardening}\label{sec:harden}
+We assessed the database environment against the eleven items of Phase 9 and measured the \emph{before} state on untouched images (a throw-away \code{postgres:18} and \code{php:8.5-apache}) so the comparison is real, not asserted (\code{docs/evidence/hardening.txt}, regenerated on 17 November 2026).
+
+\subsection{Summary in the format of the assignment}
+\tcap{Hardening: before and after (assignment format)}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.3cm}L{3.7cm}Y@{}}
+\toprule\textbf{Security issue} & \textbf{Before hardening} & \textbf{After hardening}\\\midrule
+Shared accounts & One superuser for everything (defaults) & Separate owner (NOLOGIN), runtime, auditor and backup accounts; no shared login\\
+Excessive privileges & \code{PUBLIC} may connect and use schema \code{public}; $^{*}$runtime could write decisions and balances separately (F01) & PUBLIC revoked; column privileges; only \code{record_decision()} moves money\\
+Password storage & Defaults leave it to the application; unsafe baseline = plaintext & Argon2id; hash not selectable by the runtime account\\
+SQL injection & Unsafe concatenated query leaks 8 accounts (lab) & Prepared statements; same 9 payloads return 0 rows\\
+Audit logging & Server: connections not logged, \code{log_statement=none} & Application audit (append-only) and server log of connections, locks, DDL, errors with statements\\
+Backup strategy & None & Encrypted, checksummed, restore-tested, key backed up separately, private key under passphrase\\
+Sensitive data & Plaintext comments & Authenticated encryption, keyring with rotation, TLS \code{verify-full}\\
+Login abuse & $^{*}$Account lockout (DoS), no source limit, timing gap (F02--F04) & Per-address throttle, per-pair lock, equal work\\
+Identity and audit trust & $^{*}$Self-asserted actor (O02); web account could write the trail (O03) & Signed actor token verified by the database; no privilege on \code{audit\_events}; separate audit-writer account\\
+Privileged sign-in & $^{**}$Password only for officers and auditors & Second factor (TOTP) with replay protection and recovery codes\\
+Deadlines, export, mail & $^{**}$Deadlines advisory; no export; no notifications & Deadlines enforced by a trigger; audited CSV export; outbox delivered by a separate account\\
+Continuous verification & $^{**}$Manual runs only & CI on every push and pull request; dependabot for actions and base images\\
+Browser hardening & $^{*}$No Permissions-Policy (F05) & Permissions-Policy, COOP, CORP, CSP, HSTS, nosniff, frame deny\\
+\bottomrule\end{tabularx}\end{center}
+\footnotesize $^{*}$ State of the application on 11 November 2026, before the remediation release. $^{**}$ State before release 2 on 17 November 2026.\normalsize
+
+\subsection{Detailed assessment}
+The item-by-item assessment of the eleven Phase 9 topics, with measured before and after values and the justification of each decision, is Appendix~C.5; the summary above is its short form.
+
+\subsection{Hardening added on 17 November}
+\textbf{Release 1 (F01--F05).} Closing F01 removed two table privileges and introduced a single SECURITY DEFINER function; closing F02--F04 added a database-side throttle the application cannot tamper with; F05 added three response headers. Key management gained a keyring with rotation, a separate key backup and custody tools for the backup private key.
+\textbf{Release 2.} Two more database accounts (audit writer, notifier) with no table privilege beyond their job, and their \code{pg\_hba.conf} lines; \code{db-apply.sh} now keeps the live \code{pg\_hba.conf} identical to the versioned file instead of trusting the first-initialisation copy. The runtime role lost its last write privilege on the audit trail; an owner-only \code{actor\_key} table and a signed token replaced the self-asserted identity; the TOTP secret is encrypted and every \code{mfa\_*} function checks the token; review deadlines are a trigger; new secrets (\code{AUDIT\_WRITER\_DB\_PASSWORD}, \code{NOTIFIER\_DB\_PASSWORD}, \code{actor.key}) are generated on demand and never committed. The CI workflow and dependabot configuration (Appendix~A) make the verification repeatable on every push. After these changes the regenerated privilege listing shows the runtime role with \code{SELECT} only on \code{decisions}, no privilege at all on \code{audit\_events}, \code{login\_failures}, \code{actor\_key} and the notification outbox, and \code{EXECUTE} only on the functions it needs. The full suite, the retests and the clean-room installation were rerun after the change (Section~\ref{sec:final}).
+
+%% ====================================================================== 17. INCIDENT
+\section{Security Incident Investigation}\label{sec:incident}
+We investigated two simulated incidents. For both we started from \emph{evidence only} -- the audit trail read through the auditor account and the PostgreSQL server log -- and asked the questions of the assignment.
+
+\subsection{Incident 1: probing by a valid user, followed by a legitimate award}
+\textbf{Scenario.} A reviewer who is not assigned to a proposal tries to read another reviewer's review and the officer's decision screen; later the officer records an award. Evidence: \code{incident-timeline.txt} (run of 17 November 2026, started 16:25:45 UTC, events 75--80). The officer now signs in with a password \emph{and} a one-time code (\code{method: totp}); every event below is \emph{verified}, that is, backed by a valid actor token.
+\tcap{Incident 1 timeline}
+\begin{center}\scriptsize
+\begin{tabularx}{\linewidth}{@{}L{0.7cm}L{1.6cm}L{3.4cm}L{2.6cm}L{1.9cm}Y@{}}
+\toprule\textbf{Id} & \textbf{Time} & \textbf{Actor (role)} & \textbf{Action} & \textbf{Outcome} & \textbf{Detail}\\\midrule
+75 & 16:25:46.141 & karim.ouazzani (reviewer) & \code{auth.login} & success & ---\\
+76 & 16:25:46.169 & karim.ouazzani (reviewer) & \code{review.view}, review \#1 & \finding{denied} & reason \code{not\_visible} (HTTP 404)\\
+77 & 16:25:46.194 & karim.ouazzani (reviewer) & \code{request.forbidden} & \finding{denied} & \code{/officer/proposals/1} needs \code{proposal.read\_submitted} (HTTP 403)\\
+78 & 16:25:46.432 & nadia.berrada (officer) & \code{auth.login} & success & password, then second factor (\code{totp})\\
+79 & 16:25:46.459 & nadia.berrada (officer) & \code{proposal.view}, proposal \#1 & success & with 1 review\\
+80 & 16:25:46.480 & nadia.berrada (officer) & \code{decision.record}, proposal \#1 & success & approved 150\,000.00 MAD; request id present\\
+\bottomrule\end{tabularx}\end{center}
+The award travels through \code{record_decision()}; the event written by the function carries the request correlation id and is marked verified (compare with incident 2 before the fix). The balance moved from 600\,000.00 to 450\,000.00 and the proposal from \emph{under review} to \emph{approved}.
+
+\subsection{Incident 2: a stolen database credential, before and after identity binding}
+\textbf{Scenario (lab only, disposable \code{grants_test}).} Someone holding the \code{grants_app} \emph{database password} (not the web process, so not the actor key) connects from inside the Docker network, outside any HTTP request, with \code{application\_name=stolen-credential}. We ran the \emph{same} attacker script twice: at 15:21 UTC \emph{before} the identity binding (\code{incident-privileged-before-binding.txt}) and at 16:25 UTC \emph{after} it (\code{incident-privileged.txt}). After the fix the session was backend pid 24609 and lasted 23 ms (Figure~\ref{fig:swimlane}; terminal output in Appendix~E).
+\diagram{swimlane}{Incident 2 after the fix, as four lanes. Every attempt is refused and appears only in the PostgreSQL server log, with its SQL text; nothing reaches the application audit trail, so the investigator's audit queries come back empty and the server log tells the whole story.}{swimlane}
+
+\tcap{Incident 2, the same attack before and after identity binding}
+\begin{center}\scriptsize
+\begin{tabularx}{\linewidth}{@{}L{3.7cm}L{4.6cm}Y@{}}
+\toprule\textbf{Attacker step} & \textbf{Before (15:21 UTC)} & \textbf{After (16:25 UTC)}\\\midrule
+Read the audit trail, password hashes, the throttle table & refused (42501) & refused (42501); also refused: reading the actor key\\
+List every account & allowed, 7 rows & allowed, 7 rows (O01-style exposure of non-secret columns, accepted)\\
+Claim an officer identity, read all submitted proposals & \finding{allowed: 18 rows} & \resisted{0 rows}: the old claim and a self-signed token yield no identity\\
+Insert a lone decision; lower the balance alone & refused (42501) & refused (42501)\\
+Award 1.00 through \code{record\_decision()} with the claimed identity & \finding{allowed: money moved} & \resisted{refused}: ``record\_decision requires an active officer''\\
+UPDATE, DELETE, TRUNCATE on \code{audit\_events} & refused (42501) & refused (42501)\\
+Forge an audit event framing a researcher & \finding{allowed: event 257 visible to the auditor} & \resisted{refused three ways}: direct INSERT (42501), \code{audit\_append()} with a forged token and with none (``needs a valid actor token'')\\
+What the audit trail shows afterwards & two events (256, 257) found by the anomaly query & nothing from this session; the anomaly query returns no row\\
+Evidence that remains & audit trail and server log & server log only (23 ms session, 13 refusals with statement text)\\
+\bottomrule\end{tabularx}\end{center}
+
+\tcap{Incident 2 timeline after the fix (all entries from the PostgreSQL server log)}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{1.58cm}L{5.9cm}L{1.86cm}L{5.1cm}@{}}
+\toprule\textbf{Time (UTC)} & \textbf{Event} & \textbf{Outcome} & \textbf{What it tells the investigator}\\\midrule\endhead
+16:25:41.840 & connection received from host 172.18.0.4; authenticated (SCRAM), TLS 1.3; \code{application\_name=stolen-credential} & --- & Comes from the web container network, but no HTTP request matches it; a name the application never uses\\
+16:25:41.847 & \code{SELECT * FROM audit\_events}; \code{SELECT password\_hash FROM users}; \code{login\_failures}; \code{actor\_key} & \resisted{refused} 42501 & Reconnaissance of evidence, hashes, the throttle and the identity key; statement text is in the log\\
+16:25:41.861 & \code{INSERT INTO decisions ...}; \code{UPDATE grant\_calls SET remaining\_budget ...} & \resisted{refused} & Attempt to move money in pieces (finding F01, blocked)\\
+16:25:41.862 & \code{SELECT * FROM record\_decision(...)}: ``record\_decision requires an active officer'' & \resisted{refused} & The claimed identity was not proved, so the function saw no officer (O02 closed)\\
+16:25:41.863 & \code{UPDATE}, \code{DELETE}, \code{TRUNCATE} on \code{audit\_events} & \resisted{refused} & Attempt to erase tracks\\
+16:25:41.863 & direct \code{INSERT INTO audit\_events}; \code{audit\_append()} twice: ``an audit event needs a valid actor token'' & \resisted{refused} & Attempt to forge a record (O03 closed)\\
+16:25:41.864 & disconnection after 23 ms & --- & Short, scripted session\\
+\bottomrule\end{longtable}\end{center}
+
+\subsection{Answers to the investigation questions (incident 2, after the fix)}
+\tcap{Incident 2: answers to the investigation questions}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.6cm}Y@{}}
+\toprule\textbf{Question} & \textbf{Finding}\\\midrule
+What happened? & A session using the runtime credential listed the accounts (the only thing it could read), claimed an officer identity in two ways, tried to move money, to award through the one permitted function, to erase its tracks and to forge audit records. Nothing succeeded except the account listing\\
+When? & 16:25:41.840--.864 UTC on 17 November 2026 (server log, pid 24609)\\
+Which accounts? & Database account \code{grants_app}; claimed application identity: the officer account (and a researcher, in the forged events)\\
+Which resources were affected? & \code{users} (e-mail, name, role read). Nothing was changed: no row, no balance, no audit record\\
+Which controls failed? & None completely. Weak points: the attacker could still read the non-secret user columns, and the credential helper still returns one hash per e-mail (O01). The attacker was visible \emph{only} in the server log, because nothing reached the application audit\\
+Which controls held? & Proof of identity (O02), no audit forgery (O03), no partial award (F01), no hash or key or audit read, an immutable trail, and a server log that recorded every refusal with user, time and statement\\
+Residual risk & An attacker who also takes \code{secrets/actor.key}, that is, who compromises the \emph{web process}, can mint tokens and act as any user again; the lab does not claim to stop that (Section~\ref{sec:recs})\\
+Evidence & Audit view (2a) and anomaly query (2b) empty for this session; PostgreSQL log filtered by pid (2c)\\
+Corrective actions & Rotate the \code{grants_app} password and treat \code{web.env} as exposed (rotate the actor key too if the web host is suspect: replace \code{secrets/actor.key} and rerun \code{scripts/db-apply.sh}); alert on \code{permission denied} for \code{grants_app} that matches no HTTP request and on unknown \code{application\_name} values; restrict \code{pg\_hba} to the web container address; ship the server log to another host; add \code{pgaudit}; split the web process into a front end and an identity and audit service so that no single process holds every key\\
+\bottomrule\end{tabularx}\end{center}
+The comparison also shows what a second evidence source buys: before the fix the audit trail carried the two successful abnormal events and the server log the refusals; after the fix the audit trail has nothing to say and the server log is the \emph{only} record, which is why shipping it off the host is on the list.
+
+%% ====================================================================== 18. FINAL ASSESSMENT
+\section{Final Security Assessment}\label{sec:final}
+Evidence of the final state (17 November 2026, after release 2): the full suite (78 tests, 851 assertions, plus 13 owner-level guard checks, no failure); a black-box rerun of the penetration script (122 resisted, 0 findings); retests of F01 to F05 and of the observations O02 and O03; both incidents; the recovery drill; the key-rotation and custody drills; the clean-room installation (177 files, 41 s). The continuous-integration workflow that reruns all of this is configured and runs on every push and pull request.
+\tcap{Final assessment against the nine questions}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{2.9cm}YL{2.5cm}@{}}
+\toprule\textbf{Question (\S6 of the assignment)} & \textbf{Assessment and evidence} & \textbf{Verdict}\\\midrule
+Authentication: are users properly authenticated? & Individual accounts, Argon2id, regenerated sessions, expiry, CSRF, per-address throttle, equal work on every failure path, second factor for officers and auditors; F02--F04 retested; no bypass found & \resisted{Yes}; researchers and reviewers have no second factor\\
+Authorization: only the resources required? & Route permission plus RLS; IDOR and privilege-escalation checks (20) resisted; identity proved to the database (O02 closed); one SECURITY DEFINER door for awards; deadlines enforced by a trigger & \resisted{Yes}\\
+Least privilege: unnecessary privileges removed? & Owner NOLOGIN, no BYPASSRLS, column grants; F01 removed INSERT on decisions and UPDATE of the balance; release 2 removed the last write on the audit trail; two further accounts with no table privilege; privilege listing regenerated & \resisted{Yes}; user columns readable by design\\
+Application security: SQL injection mitigated? & Prepared statements; 13 injection variants resisted on the live application; lab: 9 payloads exploitable before, 0 after & \resisted{Yes}\\
+Data protection: sensitive information protected? & Argon2id; authenticated field encryption with rotation; TLS \code{verify-full}; encrypted backups with separate key backup and custody; proposals protected by access control only & \resisted{Yes}, with stated limits\\
+Auditing and monitoring: activities traceable? & Who, what, when, resource, outcome, correlation id, source address, proved-or-named flag; denials survive rollback; CSV export; no forged events (O03 closed); server log in incident 2 & \resisted{Yes}; no \code{pgaudit}, trail is tamper-resistant not tamper-evident\\
+Backup and recovery: recoverable after loss? & Drill: restored in 0.8 s; checksums, privileges, RLS, identity binding, second factor, outbox and behaviour verified; key backup identical & \resisted{Yes}; no WAL archiving, same-host copies\\
+Hardening: attack surface reduced? & Measured before/after on eleven items; no published DB port; read-only code; minimal Apache; 8 (web) and 5 (db) pending package upgrades applied on 17 November (now 0) & \resisted{Yes}; rebuild on a schedule\\
+Incident investigation: evidence sufficient? & Two incidents reconstructed from the audit trail and server log; incident 2 run before and after the fix; controls that held and failed identified & \resisted{Yes}; after the fix the server log is the only record of incident 2\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Findings status after the retest}
+\tcap{Findings status after the retest}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{1.3cm}L{5.2cm}L{2.2cm}Y@{}}
+\toprule\textbf{ID} & \textbf{Finding} & \textbf{Status} & \textbf{Retest evidence}\\\midrule
+F01 & Partial award possible with raw SQL & \fixed & \code{deep-db.json} DB04\\
+F02 & Anonymous lockout of a known account & \fixed & \code{auth-retest.json} F02\\
+F03 & Locked-account timing gap & \fixed & \code{auth-retest.json} F03, \code{timing.csv}\\
+F04 & No source throttle & \fixed & \code{auth-retest.json} F04\\
+F05 & Permissions-Policy missing & \fixed & \code{auth-retest.json} F05\\
+O02 & Self-asserted actor (stolen database password) & \fixed & \code{deep-db.json} DB03; incident 2 after the fix\\
+O03 & Web account could forge audit events & \fixed & \code{deep-db.json} DB05; IDENT suite\\
+O01 & Hash helper returns a hash per e-mail & \accepted & \code{deep-db.json} DB02; Section~\ref{sec:vuln}\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsection{Risk register (residual risks)}
+Likelihood (L) and impact (I) are rated low, medium or high for the lab context and for a hypothetical production use; the owner is the work area of Appendix~I that follows the risk.
+\tcap{Risk register}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{0.6cm}L{3.6cm}L{0.7cm}L{0.7cm}L{4.4cm}L{4.4cm}L{0.9cm}@{}}
+\toprule\textbf{ID} & \textbf{Risk} & \textbf{L} & \textbf{I} & \textbf{Existing mitigation} & \textbf{Planned action} & \textbf{Area}\\\midrule\endhead
+R1 & Web process compromised: it holds the actor key and the three database passwords, so it can act as any user again & L & H & Read-only code, unprivileged worker, no published DB port, second factor in front of the privileged roles; incident 2 shows a stolen \emph{password} is contained & Split into a front end and an identity and audit service; separate the keys; WebAuthn & C, E\\
+R2 & O01: the login helper returns hashes to a compromised runtime account & L & M & Argon2id; helper limited to one row per e-mail; second factor for privileged roles & Narrower credential interface; rate-limit the helper & C\\
+R3 & TOTP is not phishing-resistant; researchers and reviewers have no second factor & M & M & Throttle, pair lock, replay protection, recovery codes, alerts & WebAuthn; extend the second factor to every role & B\\
+R4 & Distributed guessing from many addresses against one researcher or reviewer account & M & M & 5 per address per 15 min; alert at 20 failures per hour & Second factor for all roles; monitoring & B\\
+R5 & People behind one address share the throttle & M & L & Thresholds are configuration values; 10-minute window & Per-user risk scoring; trusted-proxy rule & B\\
+R6 & Keyring, actor key, passphrase and private backup key start on one lab host; no QR enrolment & M & H & Custody scripts; key backup as a separate file; setup key and otpauth address shown & Two custodians; offline media; rotation calendar; a QR code if a library is approved & E\\
+R7 & Docker or host administrator is trusted & L & H & Read-only code, 0600 secrets, no published DB port & Accepted for the lab; separate duties in production & D\\
+R8 & CI runs the project's own checks only; the image job reports pending upgrades but blocks nothing; patch cadence is manual & M & M & CI on every push and pull request, dependabot, rebuild on 17 November (0 pending), clean-room check & Make the patch report a gate; vulnerability scanner when available; scheduled rebuilds & D, E\\
+R9 & E-mail goes to files in the lab; a real SMTP server and per-user rate limits are configuration, not demonstrated & M & L & Fixed templates, no details, header checks, TLS-only credentials, retries, one message per event & Operate and monitor a real relay; per-user limits & D\\
+R10 & No WAL archiving; backups on the same host & L & H & Verified restore; encrypted, checksummed backups & Off-site copy; point-in-time recovery & D\\
+R11 & Connection cap and Argon2id memory under load (about 15 concurrent requests) & M & M & Throttle answered before hashing; statement and lock timeouts & Connection pooling; bound Apache workers; load test & D\\
+R12 & Audit trail is tamper-resistant, not tamper-evident; no retention; after the fix the server log is the only record of an out-of-band attacker & L & M & Triggers and grants; separate writer; server log with statement text & Hash chain or external shipping; \code{pgaudit}; partitioning & D\\
+\bottomrule\end{longtable}\end{center}
+
+\subsection{Limits of this assessment}
+The tests are bounded lab exercises on fictional data, not a certification. Timing was measured locally, without network jitter. A distributed guessing attack against one researcher or reviewer account is detected, not prevented (privileged roles also need a second factor, which is not phishing-resistant). TLS certificates are self-signed; e-mail goes to files in the lab. A Docker administrator is trusted. Patch status: the 8 (web) and 5 (db) pending package upgrades were applied on 17 November by rebuilding with pulled base images (now 0 and 0), but nothing keeps them current automatically. The system is single-node and was not load-tested: with each request able to use two runtime connections and a limit of 30, roughly 15 simultaneous requests is the ceiling. All key material, including the actor key, starts on one lab host. A compromise of the web process, which holds the actor key, is not contained by the database.
+
+%% ====================================================================== 19. RECOMMENDATIONS
+\section{Recommendations}\label{sec:recs}
+\tcap{Recommendations}
+\begin{center}\small
+\begin{longtable}{@{}L{0.70cm}L{11.65cm}L{2.51cm}@{}}
+\toprule\textbf{\#} & \textbf{Recommendation} & \textbf{Status}\\\midrule\endhead
+1 & Split the web process into a front end and an identity and audit service, so that no single process holds the actor key, the database passwords and the application code (closes the residual of O02/O03) & Open\\
+2 & WebAuthn (phishing-resistant) for officers and auditors, a second factor for researchers and reviewers, and a QR code for enrolment if a library is approved & Open\\
+3 & Ship the PostgreSQL log and the audit trail to a separate host; add \code{pgaudit}; alert on \code{permission denied} for \code{grants_app} that matches no HTTP request & Open\\
+4 & Make the audit trail tamper-\emph{evident} (hash chain or external shipping) and define retention and partitioning & Open\\
+5 & Turn the CI image patch report into a gate and add a vulnerability scanner when one is available; scheduled rebuilds (\code{docker compose build --pull}) & Partly done: CI configured; report informational\\
+6 & Connection pooling or a higher limit, and a bound on Apache workers, so Argon2id memory and the 30-connection cap are not exhausted under load & Open\\
+7 & Off-site backup copy and WAL archiving for point-in-time recovery; production certificates from a trusted CA; move the backup private key and the actor key to separate custody & Open\\
+8 & A narrower view of user columns for the runtime role; a narrower credential helper (O01); a trusted-proxy rule before any reverse proxy is added & Open\\
+9 & Operate a real SMTP relay and per-user mail limits; keep the templates free of proposal details & Open\\
+10 & F01 award function; F02--F04 throttle and equal work; F05 headers; O02 and O03 (actor token, audit door); second factor; database-enforced deadlines; CSV export; outbox; CI; key rotation, key backup, custody tools & \fixed\\
+\bottomrule\end{longtable}\end{center}
+
+%% ====================================================================== 20. CONCLUSION
+\section{Conclusion}\label{sec:concl}
+The project demonstrates the whole security process of the assignment on one realistic system. The design puts integrity rules in the database, authorization in two independent layers and secrets under a documented key lifecycle. The attack phase found real weaknesses -- a partial-award path, an account-lockout denial of service, a timing gap, missing throttling, a missing header, and two trust boundaries (a self-asserted identity and a writable audit trail) -- and, as the assignment requires, each was explained by its root cause and impact, fixed, and verified by replaying the same probe; the stolen-credential incident was run before and after the fix. The SQL-injection laboratory showed both the damage an injection can do and how privileges limit it. The two incidents show what the evidence can and cannot prove, and name the controls that held and the ones that did not.
+
+What we would claim, and no more: the delivered application resisted every attack we tried within a bounded scope, the database refuses what the roles may not do even when the application is bypassed, and a lost database can be restored with its privileges and encrypted content. What remains is documented and prioritized: the web process that holds the actor key, phishing-resistant authentication for every role, tamper-evident audit and log shipping, patch cadence and load behaviour.
+
+%% ====================================================================== 21. REFERENCES
+\section{References}\label{sec:refs}
+\begin{enumerate}[label={[\arabic*]}]
+\item OWASP Web Security Testing Guide (WSTG) and Application Security Verification Standard (ASVS).
+\item OWASP Cheat Sheet Series: SQL Injection Prevention, Cross-Site Request Forgery Prevention, Session Management, Password Storage.
+\item PostgreSQL 18 documentation: Row Security Policies, GRANT, SECURITY DEFINER functions, pg\_hba.conf, SSL support, Server log settings.
+\item PHP manual: password\_hash (Argon2id), PDO prepared statements, sessions; libsodium documentation: AEAD XChaCha20-Poly1305.
+\item NIST SP 800-63B: Digital Identity Guidelines (authentication, memorized secrets); NIST SP 800-57: Recommendation for Key Management.
+\item A.\ Biryukov, D.\ Dinu, D.\ Khovratovich, \emph{Argon2: the memory-hard function for password hashing}; RFC 9106.
+\item RFC 6238 (TOTP) and RFC 4226 (HOTP); RFC 2104 (HMAC) and RFC 4231 (HMAC-SHA-256 test vectors); RFC 5321 (SMTP) and RFC 5322 (message format).
+\item The GNU Privacy Guard manual (public-key encryption, passphrase handling).
+\item Microsoft STRIDE threat classification; WCAG 2.2 (focus visibility and colour independence) for the interface.
+\item Course material: Database Security, Dr.\ A.\ O.\ Harazeem, project brief ``Secure Database System: Design, Implementation, Security Assessment and Hardening''.
+\end{enumerate}
+%% ====================================================================== 22. APPENDICES
+\clearpage
+\section{Relevant Appendices}\label{sec:appx}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.6cm}Y@{}}
+\toprule\textbf{Appendix} & \textbf{Content}\\\midrule
+A & Evidence index and reproduction commands, in order, including the CI workflow (deliverables 1, 2, 4, 5)\\
+B & Penetration test: scope, commands, techniques and results per family\\
+C & Repository layout, source and SQL excerpts, detailed hardening assessment\\
+D & Evidence excerpts as listings: test run, SQL-injection lab, key rotation, incident 2 (before and after), retest\\
+E & Terminal evidence figures rendered from the real output\\
+F & Interface screenshots, captioned gallery (desktop and mobile, including the second factor, deadline and export screens)\\
+G & Requirement-to-evidence traceability matrix\\
+H & Glossary\\
+I & Team organisation, peer verification, demonstration plan\\
+\bottomrule\end{tabularx}\end{center}
+
+%% ---------------------------------------------------------------- A
+\appx{A}{Evidence Index and Reproduction}
+\diagram{cipipeline}{Continuous integration (configured, runs on every push and pull request): lint, then verify (tests, labs, retests, recovery drill), and an image build with a patch-status report. Dependabot proposes dependency and base-image updates.}{cipipeline}
+Everything in this report can be rebuilt from the repository. Evidence files are under \code{docs/evidence/}; commands run from the repository root. \textbf{Technology approval:} the technology choices (PostgreSQL 18, PHP 8.5, Apache 2.4, Docker/Compose, libsodium, GnuPG, Python, Node.js/Chrome, LaTeX) were submitted to and approved by the instructor, Dr.\ Abdulganiyu O.\ Harazeem, by e-mail before the project started (``Your choice of technologies are acceptable, so you may proceed accordingly''); the approval e-mail was addressed to Abdelghany AIT OUAZGHOUR with the other four members in copy and is on file.
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{3.95cm}L{5.08cm}L{5.83cm}@{}}
+\toprule\textbf{Claim} & \textbf{Command} & \textbf{Evidence file}\\\midrule\endhead
+Build and seed the system & \code{scripts/setup.sh} & (running stack on \code{https://localhost:8443})\\
+78 tests, 851 assertions, 13 owner checks & \code{scripts/test.sh} (filters: AUTH RBAC RLS FLOW DATA AWARD AUDIT IDENT DEADLINE EXPORT MFA MAIL OWNER) & \code{test-results.txt}\\
+SQL-injection laboratory & \code{scripts/sqli-demo.sh} & \code{sqli-demo.txt}\\
+Black-box penetration checks & \code{scripts/pentest.sh} & \code{pentest-20261117T162553Z.txt} (122 resisted, 0 findings)\\
+Retest F02--F05 (60 timing samples) & \code{python3 scripts/pentest/retest-auth.py} & \code{pentest-after/auth-retest.json}, \code{timing.csv}\\
+Retest F01, O02, O03 (restricted SQL) & \code{PENTEST\_LAB=1 DB\_NAME=grants\_test php scripts/pentest/deep-db.php} & \code{pentest-after/deep-db.json}\\
+Incident 1 (HTTP) & \code{scripts/incident-demo.sh} & \code{incident-timeline.txt}\\
+Incident 2 (stolen database password) & \code{scripts/incident-privileged.sh} & \code{incident-privileged.txt} (after) and \code{incident-privileged-before-binding.txt} (before)\\
+Second factor, demo code and operator reset & \code{python3 scripts/totp.py <e-mail> --fresh}; \code{scripts/mfa-reset.sh <e-mail>} & \code{secrets/demo-totp.txt} (local, never committed); audit event \code{admin.mfa\_reset}\\
+E-mail outbox delivery & \code{php scripts/send-notifications.php [--reminders]} (also the \code{notifier} service in \code{compose.yaml}) & \code{logs/outbox/*.eml}; tests MAIL\\
+Continuous integration & \code{.github/workflows/ci.yml}, \code{.github/dependabot.yml}, \code{.github/scripts/check\_retest.py} & configured; runs on every push and pull request; evidence uploaded as an artifact\\
+Backup, loss, restore, verify & \code{scripts/recovery-drill.sh} & \code{recovery-drill.txt}\\
+Key rotation lifecycle & \code{scripts/key-rotation-drill.sh} & \code{key-rotation.txt}\\
+Backup key custody & \code{scripts/backup-key-custody-demo.sh} & \code{backup-key-custody.txt}\\
+Privileges and hardening & \code{scripts/evidence.sh} & \code{privileges.txt}, \code{hardening.txt}\\
+Screenshots and interface checks & \code{node scripts/screenshots.mjs} & \code{screenshots/}, \code{ui-checks.json}\\
+Database creation, roles, privileges & \code{scripts/db-apply.sh grants} (order 00, 02, 03, 05, 06, 07, 08, 09, then 04; on an existing database 00, 05--09, 04, keeping its data) & \code{database/*.sql}\\
+Demonstration and oral defence & \code{docs/DEMO.md}, \code{docs/DEFENSE.md} (local files) & ---\\
+\bottomrule\end{longtable}\end{center}
+
+\subsubsection*{A.1 Reproduction in order}
+\begin{lstlisting}[language=bash]
+scripts/setup.sh                      # secrets (incl. actor.key), images, database (00,02,03,05,06,07,08,09,04), seed data, two-step demo accounts
+scripts/test.sh                       # 78 tests, 851 assertions, 13 owner-level checks -> test-results.txt
+scripts/sqli-demo.sh                  # controlled SQL injection, before / impact / after -> sqli-demo.txt
+scripts/pentest.sh                    # black-box checks on the lab -> pentest-<time>.txt
+python3 scripts/pentest/retest-auth.py                                   # F02-F05 -> pentest-after/auth-retest.json
+PENTEST_LAB=1 DB_NAME=grants_test php scripts/pentest/deep-db.php        # F01 -> pentest-after/deep-db.json
+scripts/incident-demo.sh              # incident 1 -> incident-timeline.txt
+scripts/incident-privileged.sh        # incident 2 (after the fix) -> incident-privileged.txt
+scripts/key-rotation-drill.sh         # key lifecycle -> key-rotation.txt
+scripts/backup-key-custody-demo.sh    # custody of the backup private key -> backup-key-custody.txt
+scripts/recovery-drill.sh             # backup, loss, restore, verify -> recovery-drill.txt
+scripts/evidence.sh                   # privileges and hardening -> privileges.txt, hardening.txt
+node scripts/screenshots.mjs          # 30 screenshots, 23 interface checks -> screenshots/, ui-checks.json
+python3 scripts/totp.py nadia.berrada@uni.example --fresh   # current demo code (lab accounts only)
+scripts/mfa-reset.sh nadia.berrada@uni.example              # operator: reset one second factor (audited)
+php scripts/send-notifications.php --reminders               # queue reminders and deliver the outbox
+scripts/clean-room-check.sh           # build from tracked files only, run everything -> clean-room.txt (177 files, 41 s)
+# CI: .github/workflows/ci.yml runs lint, the stack setup, tests, labs, retests and the recovery drill on every push
+python3 scripts/render-evidence-figures.py   # terminal figures of this report -> evidence/figures/
+cd docs/latex && pdflatex report.tex  # (three runs) -> this report
+\end{lstlisting}
+
+%% ---------------------------------------------------------------- B
+\appx{B}{Penetration Test: Scope, Commands and Results}
+\textbf{Scope and isolation.} Target: the group's own fictional application, run as a separate disposable Docker stack (own project, network, volume, keys and passwords) on localhost only (HTTP 9180, HTTPS 9543 for the first campaign; the live lab on 8443 for the retest). Excluded: university production systems, public websites, third-party databases, real accounts, password lists, denial-of-service load, credential exfiltration. Database tests used the restricted \code{grants_app} account as the \emph{attack} identity; administrative access only prepared the lab and collected evidence. Tools: \code{curl}, \code{openssl}, \code{bc}, \code{psql}, \code{docker}, and the harnesses in \code{scripts/pentest/}. The \code{curl} listings below are representative equivalents of what the scripts send; the raw script output is the authority for every number.
+\begin{lstlisting}[language=bash]
+python3 scripts/pentest/prepare-lab.py                 # copy sources (no secrets) to a disposable lab
+scripts/pentest.sh                                     # black-box checks (curl/openssl only)
+python3 scripts/pentest/http-deep.py                   # first campaign: TLS-verified HTTP, timing, throttling
+PENTEST_LAB=1 DB_NAME=grants_test php scripts/pentest/deep-db.php    # restricted SQL probes
+\end{lstlisting}
+
+\subsubsection*{B.1 Reconnaissance, transport and exposure}
+\begin{lstlisting}[language=bash]
+for p in /.git/config /.env /config/config.php /secrets/web.env /backups/ /database/02_schema.sql /src/App.php \
+         /logs/app-error.log /server-status /assets/ /phpinfo.php /index.php~; do
+  printf '%s -> ' "$p"; curl -ks -o /dev/null -w '%{http_code}\n' "https://localhost:8443$p"; done
+curl -ks --path-as-is -o /dev/null -w '%{http_code}\n' "https://localhost:8443/assets/%2e%2e/%2e%2e/secrets/web.env"
+for m in TRACE PUT DELETE OPTIONS PATCH; do curl -ks -X $m -o /dev/null -w "$m %{http_code}\n" https://localhost:8443/proposals; done
+openssl s_client -connect localhost:8443 -tls1_1 </dev/null 2>&1 | grep -i "alert\|error"
+\end{lstlisting}
+All files returned 400/403/404 without content; traversal 400; unusual methods 404/405; SSLv3, TLS 1.0 and 1.1 refused; plain HTTP answers 301 to HTTPS; ports 5432, 80, 443 are not reachable on the host (80 and 443 are published only on 127.0.0.1:8080/8443). \resisted{RESISTED}. A 404 on selected paths does not prove the whole filesystem is inaccessible.
+
+\subsubsection*{B.2 Authentication, session and CSRF}
+\begin{lstlisting}[language=bash]
+T=$(curl -ks -c jar https://localhost:8443/login | grep -o 'name="_csrf" value="[^"]*"' | cut -d'"' -f4)
+curl -ks -b jar -c jar -o /dev/null -w '%{http_code}\n' --data-urlencode "_csrf=$T" \
+     --data-urlencode "email=' OR '1'='1' --" --data-urlencode "password=x" https://localhost:8443/login      # -> 401
+curl -ks -b victim -o /dev/null -w '%{http_code}\n' -d "title=x" https://localhost:8443/proposals            # no token -> 400
+curl -ks -b victim -o /dev/null -w '%{http_code}\n' https://localhost:8443/logout                            # GET -> 404
+\end{lstlisting}
+SQL injection and array-parameter logins return 401 with identical error text for unknown account and wrong password; anonymous access to protected routes returns 303; a planted session id is replaced at login (no fixation); the cookie is HttpOnly, Secure and \code{\_\_Host-} prefixed; a copied cookie is rejected after logout; forged POSTs return 400 and create no data. \resisted{RESISTED}.
+
+\subsubsection*{B.3 Authorization, tampering and injection}
+Attackers: researcher \code{youssef.benali} and reviewer \code{karim.ouazzani}. Each denial is read after a positive control (the owner opens the same resource with 200).
+\begin{center}\scriptsize
+\begin{tabularx}{\linewidth}{@{}YL{2.8cm}L{2.2cm}@{}}\toprule\textbf{Attack}&\textbf{Observed}&\textbf{Verdict}\\\midrule
+Researcher reads / edits / submits another's proposal or draft & 404 & \resisted{RESISTED}\\
+Researcher deletes another's draft & 403 & \resisted{RESISTED}\\
+Researcher requests \code{/officer}, \code{/officer/calls}, \code{/audit}, \code{/reviews}, \code{/reviews/N}; records a decision; assigns a reviewer; creates a call & 403 each & \resisted{RESISTED}\\
+Reviewer opens or overwrites a colleague's review; records a decision & 404 / 403; score unchanged & \resisted{RESISTED}\\
+Mass assignment (\code{status}, \code{owner\_id}, \code{currency} in the body) & ignored; row stays draft, own owner, MAD & \resisted{RESISTED}\\
+Amounts \code{-500}, \code{0}, \code{1e9}, \code{0x10}, \code{10;DROP}, \code{99999999999999999999}, \code{1.999}, \code{NaN}; path id \code{1\%20OR\%201=1} & 422 each; 404 & \resisted{RESISTED}\\
+Seven SQL payloads in the search box and six in the audit filters (UNION, error-based, \code{pg\_sleep}, wildcards) & no foreign row, no error, no delay & \resisted{RESISTED}\\
+Stored and reflected script payloads; \code{Host} header reflection & escaped; not reflected & \resisted{RESISTED}\\
+Superuser, guessed password, no-TLS and backup account connections from the web container to the database & rejected by \code{pg\_hba} or authentication (5 of 5) & \resisted{RESISTED}\\
+\bottomrule\end{tabularx}\end{center}
+
+\subsubsection*{B.4 Brute force, lockout and timing (first campaign and retest)}
+\begin{lstlisting}[language=bash]
+for i in 1 2 3 4 5 6; do   # failed anonymous logins on a KNOWN account, then the CORRECT password
+  curl -ks -b j -c j -o /dev/null -w '%{http_code}\n' --data-urlencode "_csrf=$T" \
+    --data-urlencode "email=omar.chraibi@uni.example" --data-urlencode "password=wrong$i" https://localhost:8443/login; done
+\end{lstlisting}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.0cm}YY@{}}\toprule & \textbf{11 November (before)} & \textbf{17 November (after)}\\\midrule
+F02 five failures, known account & 401 x5; account lock in database; correct password also 401 & 401 x5; no account-wide lock; attacker address locked, owner's other address open\\
+F03 timing, 20 samples per class & unknown 251.756, unlocked 254.366, \textbf{locked 27.996} ms (medians) & 151.628 / 147.796 / 148.652 ms\\
+F04 30 attempts, 30 accounts & 30 of 30 processed (all 401) in 7.69 s & 20 processed (401), 10 refused (429), \code{Retry-After: 600}\\
+\bottomrule\end{tabularx}\end{center}
+Method for the timing samples: randomized order with a fixed seed, valid CSRF token, every response must be 401 (a redirect or CSRF rejection stops the run instead of being counted as a fast failure), the CSRF fetch is excluded from the duration, and the operator clears throttle state between samples exactly as the first campaign reset its lock counter.
+
+\subsubsection*{B.5 Database-level probes (attacker holds the runtime credential)}
+\begin{lstlisting}[language=SQLx,caption={F01 probe, as grants\_app on grants\_test (first campaign: committed; retest: refused with 42501)}]
+BEGIN;
+-- first campaign: SELECT set_config('app.user_id', '<officer id>', true);   (a claim: now ignored)
+SELECT set_config('app.actor', '<valid token>', true);   -- retest: the web process, which holds the key (proposal_id, outcome, awarded_amount, currency, decided_by)
+VALUES (1, 'approved', 1.00, 'MAD', <officer id>);      -- before: COMMIT succeeded, balance and status unchanged
+COMMIT;
+\end{lstlisting}
+In the first campaign the committed 1.00 award left the balance at 600\,000.00 and the proposal \emph{under review} (invariant difference $-1.00$). In the retest the same statement, a lone balance update and a call to \code{record_decision()} by a researcher all fail with SQLSTATE 42501, the single permitted door awards 1.00 and the invariant difference is 0.00. The same script now also models an attacker who holds \emph{only} the database password: a claimed officer sees 0 proposals (DB03, was 18) and a direct INSERT into \code{audit\_events} or a call to \code{audit\_append()} without a token is refused with 42501 (DB05).
+
+%% ---------------------------------------------------------------- C
+\appx{C}{Selected Source Excerpts (Remediation Release)}
+\begin{lstlisting}[language=PHP,caption={src/Auth/Authenticator.php: one hashing cost on every failed path (F03) and counting per address (F02, F04)}]
+if ($this->gate(null) === 'ip_throttled') { throw new LoginThrottled($this->config['ip_window_minutes'] * 60); }   // cheap refusal
+$stmt = $pdo->prepare('SELECT * FROM auth_find_credentials(?)'); $stmt->execute([$email]); $cred = $stmt->fetch();
+if ($cred === false)            { password_verify($password, self::DUMMY_HASH); $this->fail(null, null, 'unknown_account'); return null; }
+if (!$cred['is_active'])        { password_verify($password, self::DUMMY_HASH); $this->fail($user, $user->id, 'account_disabled'); return null; }
+if ($this->gate($user->id) === 'pair_locked')
+                                { password_verify($password, self::DUMMY_HASH); $this->fail($user, $user->id, 'account_locked', [...]); return null; }
+if (!password_verify($password, $cred['password_hash'])) { $this->fail($user, $user->id, 'bad_password'); return null; }
+\end{lstlisting}
+\begin{lstlisting}[language=PHP,caption={src/Auth/Authenticator.php: after the password, officers and auditors owe a code (condensed)}]
+$state = $this->mfaState($user);                                  // mfa_state(): needs a token for this very user
+if ($state['enrolled'] || in_array($user->role, $this->config['mfa']['required_roles'], true)) {
+    $this->session->regenerate();
+    $this->session->set('mfa_pending', ['user_id' => $user->id, 'at' => time(), 'attempts' => 0]);   // not signed in yet
+    return new MfaChallenge($user, $state['enrolled']);
+}
+...
+$step = Totp::matchStep($secret, $input, $this->config['mfa']['window']);                // constant-time, +-1 step
+if ($step === null) { return $this->mfaFail($user, 'bad_mfa'); }                          // counts like a wrong password
+if ($this->config['mfa']['replay_protection'] && !$this->acceptStep($user, $step)) { return $this->mfaFail($user, 'mfa_replay'); }
+return $this->finishLogin($user, 'totp');                                                 // new session id, audit with the method
+\end{lstlisting}
+\begin{lstlisting}[language=SQLx,caption={database/05\_remediation.sql: throttle functions (condensed); the runtime role has no privilege on the table}]
+CREATE TABLE login_failures (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, occurred_at timestamptz DEFAULT clock_timestamp(),
+                             user_id bigint REFERENCES users (id), source_ip inet NOT NULL);
+CREATE FUNCTION auth_login_gate(p_user_id bigint, p_ip inet, p_pair_max int, p_pair_minutes int, p_ip_max int, p_ip_minutes int)
+  RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = grants, pg_temp AS $$ ... 'ip_throttled' | 'pair_locked' | NULL $$;
+CREATE FUNCTION auth_record_failure(...) ...;   CREATE FUNCTION auth_clear_failures(p_user_id bigint, p_ip inet) ...;
+ALTER TABLE users DROP COLUMN IF EXISTS failed_login_count;    -- the account-wide counter is gone
+\end{lstlisting}
+\begin{lstlisting}[language=PHP,caption={src/Grants/GrantWorkflow.php: the award is one database call (F01)}]
+$stmt = $tx->prepare('SELECT decision_id, remaining FROM record_decision(?, ?, ?::numeric, ?, ?::uuid, ?::inet)');
+try { $stmt->execute([$proposalId, $outcome, $amount, $rationale, $this->audit->correlationId(), $this->audit->ip()]); }
+catch (\PDOException $e) {   // SQLSTATE GR001 = a business rule refused the award
+    if (($e->errorInfo[0] ?? '') === 'GR001' && preg_match('/ERROR:\s+(\w+)\|([^\n]*)/', (string) $e->errorInfo[2], $m)) { throw new Denied($m[1], $m[2]); }
+    throw $e; }
+\end{lstlisting}
+\begin{lstlisting}[language=PHP,caption={src/Security/FieldCipher.php: key id in the value; header authenticated}]
+public function encrypt(string $plaintext, string $context): string {
+    $id = $this->activeKeyId(); $nonce = random_bytes(SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
+    $ct = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt($plaintext, self::aad('v2', $id, $context), $nonce, $this->keys[$id]);
+    return "v2:$id:" . base64_encode($nonce . $ct); }          // aad = "v2:<id>|reviews.comments:<row id>"
+\end{lstlisting}
+
+\subsubsection*{C.1 Repository layout}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}L{3.4cm}Y@{}}
+\toprule\textbf{Location} & \textbf{Responsibility}\\\midrule
+\code{public/} & The only directory Apache serves: front controller, CSS, JavaScript, icons\\
+\code{src/Http}, \code{src/Auth} & Kernel and controllers; Argon2id authenticator, session, CSRF, role policy\\
+\code{src/Grants} & \code{GrantWorkflow} (every write), \code{GrantQueries} (every read), exact money arithmetic\\
+\code{src/Security}, \code{src/Audit}, \code{src/Mail} & \code{FieldCipher} keyring and \code{ActorToken}; audit through \code{audit\_append()} and the read-only reader; mail transports and the notifier\\
+\code{database/} & Numbered SQL: \code{00} database access, \code{01} roles, \code{02} schema, \code{03} RLS, \code{05} remediation (F01--F04), \code{06} identity binding and audit, \code{07} review deadlines, \code{08} second factor, \code{09} notifications, \code{04} grants (applied last)\\
+\code{scripts/} & Setup, tests, backup, restore, drills, evidence collection, key and custody tools, penetration-test harnesses\\
+\code{docker/}, \code{compose.yaml} & Hardened images, \code{pg_hba.conf}, PostgreSQL settings, private network; the \code{notifier} service\\
+\code{.github/} & CI workflow, retest checker, dependabot configuration\\
+\bottomrule\end{tabularx}\end{center}
+
+
+\subsubsection*{C.2 The award function and the login-throttle functions (database/05\_remediation.sql)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=34,lastline=102]{../../database/05_remediation.sql}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=120,lastline=174]{../../database/05_remediation.sql}
+\subsubsection*{C.2a Identity proof and the audit door (database/06\_identity\_and\_audit.sql)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=28,lastline=117]{../../database/06_identity_and_audit.sql}
+\subsubsection*{C.2b Review deadlines (database/07\_review\_deadlines.sql)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=13,lastline=82]{../../database/07_review_deadlines.sql}
+\subsubsection*{C.2c Second factor (database/08\_mfa.sql)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=25,lastline=79]{../../database/08_mfa.sql}
+\subsubsection*{C.2d E-mail outbox (database/09\_notifications.sql, enqueue function)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=36,lastline=90]{../../database/09_notifications.sql}
+\subsubsection*{C.3 Row-level security policies (database/03\_rls.sql)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=10,lastline=58]{../../database/03_rls.sql}
+\subsubsection*{C.4 Privileges of the application and read-only accounts (database/04\_grants.sql)}
+\lstinputlisting[language=SQLx,basicstyle=\ttfamily\tiny,breaklines=true,firstline=7,lastline=66]{../../database/04_grants.sql}
+\subsubsection*{C.5 Detailed hardening assessment (Section~\ref{sec:harden})}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{2.21cm}L{3.78cm}L{4.14cm}L{4.51cm}@{}}
+\toprule\textbf{Item} & \textbf{Before (measured defaults)} & \textbf{After (measured)} & \textbf{Why this decision}\\\midrule\endhead
+Default accounts & \code{postgres} superuser, \code{trust} for local and loopback in \code{pg_hba.conf} & \code{postgres}: \code{peer} on the local socket only, no network line; first-match rules end with \code{host all all all reject} & The superuser must not be a network identity; the container OS user is the administrator\\
+Unnecessary users & Only the superuser exists & Exactly six login roles (\code{grants_app}, \code{grants_audit_write}, \code{grants_auditor}, \code{grants_notifier}, \code{grants_backup}, \code{postgres}) with connection limits 30, 10, 5, 3, 2 & One account per purpose makes every connection attributable in the server log\\
+Excessive privileges & \code{PUBLIC} may connect to a new database: true & PUBLIC connect and schema use: false; runtime not owner, no BYPASSRLS; F01 closed & Least privilege (Section~\ref{sec:lp})\\
+Weak application accounts & --- & Random 48-hex passwords (runtime, auditor, audit writer, notifier, backup), SCRAM-SHA-256, TLS-only, set with statement logging off, passed by environment variable & Passwords must not appear in command lines or logs\\
+Network exposure & \code{listen_addresses = *}; \code{host all all all scram-sha-256}; SSL off & No published DB port; \code{hostssl ... samenet}; web bound to 127.0.0.1:8080/8443; TLS 1.3 in use; \code{pg_hba} rejects superuser and non-TLS from the web network & A compromised container still cannot reach other accounts or databases\\
+Logging & \code{log_connections} unset, \code{log_disconnections} off, \code{log_lock_waits} off, \code{log_statement} none & Connections, disconnections, lock waits on; \code{log_statement = ddl}; errors log the failing statement & Needed for incident reconstruction (Section~\ref{sec:incident}); DML logging was not enabled because it would copy sensitive parameters into the log\\
+Configuration files & Image defaults & \code{pg_hba.conf}, \code{hardening.conf}, \code{php.ini}, \code{vhost.conf} versioned in the repository and mounted read-only; \code{expose\_php} Off, \code{display\_errors} Off, \code{allow\_url\_fopen} Off & Configuration is reviewable and reproducible\\
+Unnecessary features & Apache: 28 modules, \code{autoindex} and \code{status} on, \code{ServerTokens OS}, signature on & \code{autoindex}, \code{status}, \code{serve-cgi-bin}, default site disabled; \code{ServerTokens Prod}; \code{TraceEnable Off}; 29 modules loaded (adds \code{ssl}, \code{headers}) & Least functionality; no banner or directory listing\\
+File permissions & Worker \code{www-data}; no session policy & Worker \code{grantsweb}; sessions 0700; code and config mounted read-only; \code{secrets/} 0700 and files 0600; \code{server.key} 0600; 43 ignored paths, 0 tracked secret files & A web-process compromise cannot rewrite code or read other secrets\\
+Patch and update status & --- & PostgreSQL 18.7, PHP 8.5.12, Apache 2.4.69 after the rebuild of 17 November. Before it, \code{apt-get -s upgrade} listed 8 pending package upgrades in the web container and 5 in the db container; after \code{docker compose build --pull}, a pulled \code{postgres:18} and recreated containers it lists 0 and 0 (data volume kept, a fresh encrypted backup taken first, the 52 tests and the recovery drill rerun) & Patched on 17 November; images are only as current as their last rebuild, so rebuild on a schedule (Section~\ref{sec:recs})\\
+Backup protection & No backup & Public-key encrypted, SHA-256, 0600; field key backed up separately; private key passphrase-protected and exportable & Section~\ref{sec:data}, \ref{sec:backup}\\
+\bottomrule\end{longtable}\end{center}
+
+
+%% ---------------------------------------------------------------- D
+\appx{D}{Evidence Excerpts}
+\subsubsection*{D.1 Automated test run (\code{docs/evidence/test-results.txt})}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true]{../evidence/test-results.txt}
+
+\subsubsection*{D.2 SQL-injection laboratory (\code{docs/evidence/sqli-demo.txt}, abridged)}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true,firstline=1,lastline=22]{../evidence/sqli-demo.txt}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true,firstline=57,lastline=74]{../evidence/sqli-demo.txt}
+
+\subsubsection*{D.3 Key rotation (\code{docs/evidence/key-rotation.txt})}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true]{../evidence/key-rotation.txt}
+
+\subsubsection*{D.4 Incident 2 after the fix (\code{docs/evidence/incident-privileged.txt}: attacker session and the empty audit queries)}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true,firstline=1,lastline=34]{../evidence/incident-privileged.txt}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true,firstline=62,lastline=66]{../evidence/incident-privileged.txt}
+\subsubsection*{D.4a Incident 2 before the fix (\code{docs/evidence/incident-privileged-before-binding.txt}, attacker session)}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true,firstline=1,lastline=26]{../evidence/incident-privileged-before-binding.txt}
+
+\subsubsection*{D.5 Retest summary (\code{docs/evidence/pentest-after/auth-retest.json} and \code{deep-db.json}, abridged)}
+\begin{lstlisting}
+F05 REMEDIATED  Permissions-Policy, Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy present
+F02 REMEDIATED  failed [401 x5]; account-wide lock: false; attacker address gate: pair_locked; owner's other address: open
+F03 REMEDIATED  medians ms: unknown 151.628 | unlocked 147.796 | locked 148.652 (n = 20 each); spread ratio 1.026
+F04 REMEDIATED  30 attempts: 401 x20, 429 x10; Retry-After 600; correct password while throttled: 429
+AUTH04 CONTROL  valid login after cleanup: 303
+deep-db.json DB03 REMEDIATED (O02)  claimed officer sees 0 proposals with the database password only (before: 18)
+deep-db.json DB04 REMEDIATED (F01)  lone INSERT decisions: 42501 | lone balance UPDATE: 42501 | researcher record_decision(): 42501
+deep-db.json DB05 REMEDIATED (O03)  direct INSERT audit_events: 42501 | audit_append() without token: 42501 | forged rows seen by the auditor: 0
+deep-db.json DB02 CONFIRMED_TRUST_BOUNDARY (O01)  7 Argon2id hashes obtainable through the credential helper; values not saved
+\end{lstlisting}
+
+\subsubsection*{D.6 Continuous-integration workflow (\code{.github/workflows/ci.yml}, first 48 lines)}
+\lstinputlisting[basicstyle=\ttfamily\tiny,breaklines=true,firstline=1,lastline=48]{../../.github/workflows/ci.yml}
+
+\input{app-E}
+\input{app-F}
+\input{app-G}
+\input{app-H}
+\input{app-I}
+\end{document}

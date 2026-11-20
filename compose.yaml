@@ -1,0 +1,237 @@
+# University Research Grant Management System - lab stack.
+# db  : PostgreSQL 18, private network only (no host port published).
+# web : Apache + PHP 8.5 (mod_php), HTTPS on https://localhost:8443
+name: grants
+
+services:
+  db:
+    image: grants-db
+    build: ./docker/db
+    restart: unless-stopped
+    # Server-wide audit and log settings are command-line flags, so they apply on EVERY start (also on an existing data
+    # volume) and cannot drift. The JSON log goes to a volume that only the log shipper can read.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pgaudit
+      - -c
+      - pgaudit.log=ddl,role,write
+      - -c
+      - pgaudit.log_parameter=off
+      - -c
+      - logging_collector=on
+      - -c
+      - log_destination=jsonlog
+      - -c
+      - log_directory=/var/log/grants-db
+      - -c
+      - log_filename=postgresql-%Y-%m-%d.log
+      - -c
+      - log_file_mode=0640
+      - -c
+      - log_rotation_age=1d
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256 --data-checksums"
+      TZ: UTC
+    secrets: [postgres_password]
+    volumes:
+      - dbdata:/var/lib/postgresql
+      - dblogs:/var/log/grants-db
+      - ./docker/db/init-hardening.sh:/docker-entrypoint-initdb.d/10-hardening.sh:ro
+      - ./docker/db/pg_hba.conf:/etc/grants-db/pg_hba.conf:ro
+      - ./docker/db/hardening.conf:/etc/grants-db/hardening.conf:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -q"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # ---- the web front end: serves pages and runs the business logic. It holds the runtime and auditor database
+  # passwords and the field key, and NOTHING about identity: no actor key, no audit-writer or identity credential,
+  # no access to password hashes. It asks the identity service who a session belongs to.
+  web:
+    image: grants-web
+    build:
+      context: ./docker/web
+      args:
+        APP_UID: "${APP_UID:-1000}"
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+    ports:
+      # Bound to loopback: the demo is reachable from this machine only.
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
+      - "127.0.0.1:${HTTPS_PORT:-8443}:443"
+    env_file: ./secrets/web.env          # APP_DB_PASSWORD, AUDITOR_DB_PASSWORD, IDENTITY_API_KEY
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: grants
+      DB_SSLROOTCERT: /run/grants/db-ca.crt
+      FIELD_KEY_FILE: /run/grants/field.key
+      IDENTITY_MODE: remote
+      IDENTITY_URL: http://identity:8081
+      LOG_DIR: /srv/grants/logs
+      TZ: UTC
+    volumes:
+      # Only what a web server needs; code is read-only and only logs/ is writable.
+      - ./public:/srv/grants/public:ro
+      - ./src:/srv/grants/src:ro
+      - ./templates:/srv/grants/templates:ro
+      - ./config:/srv/grants/config:ro
+      - ./logs:/srv/grants/logs
+      - ./secrets/tls:/run/grants/tls:ro
+      - ./secrets/field.key:/run/grants/field.key:ro
+      - ./secrets/db-ca.crt:/run/grants/db-ca.crt:ro
+    networks: [backend, identitynet]
+
+  # ---- the identity service: the ONLY process that holds the actor key, the audit-writer credential and the database
+  # account that can read password hashes. Internal network only; never published to the host. Requests are HMAC-signed.
+  identity:
+    image: grants-web
+    restart: unless-stopped
+    user: "${APP_UID:-1000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: ./secrets/identity.env     # IDENTITY_DB_PASSWORD, AUDIT_WRITER_DB_PASSWORD, IDENTITY_API_KEY
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: grants
+      DB_SSLROOTCERT: /run/grants/db-ca.crt
+      FIELD_KEY_FILE: /run/grants/field.key
+      ACTOR_KEY_FILE: /run/grants/actor.key
+      IDENTITY_MODE: local
+      LOG_DIR: /srv/grants/logs
+      PHP_CLI_SERVER_WORKERS: "8"
+      TZ: UTC
+    working_dir: /srv/grants
+    command: ["php", "-S", "0.0.0.0:8081", "-t", "/srv/grants/identity/public", "/srv/grants/identity/public/index.php"]
+    healthcheck:
+      # (allow_url_fopen is off in this image, so the check uses curl)
+      test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8081/health'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2]); exit(curl_exec($$c) === 'ok' ? 0 : 1);"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - ./identity:/srv/grants/identity:ro
+      - ./src:/srv/grants/src:ro
+      - ./config:/srv/grants/config:ro
+      - ./logs:/srv/grants/logs
+      - ./secrets/field.key:/run/grants/field.key:ro
+      - ./secrets/actor.key:/run/grants/actor.key:ro
+      - ./secrets/db-ca.crt:/run/grants/db-ca.crt:ro
+    networks: [backend, identitynet]
+
+  # Delivers the e-mail outbox every minute with its own database account (grants_notifier). The default transport
+  # writes .eml files to logs/outbox; set MAIL_TRANSPORT=smtp and the SMTP_* variables in the environment to send.
+  notifier:
+    image: grants-web
+    restart: unless-stopped
+    user: "${APP_UID:-1000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: ./secrets/notifier.env     # NOTIFIER_DB_PASSWORD
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: grants
+      DB_SSLROOTCERT: /run/grants/db-ca.crt
+      LOG_DIR: /srv/grants/logs
+      MAIL_TRANSPORT: "${MAIL_TRANSPORT:-file}"
+      PUBLIC_URL: "${PUBLIC_URL:-https://localhost:8443}"
+      TZ: UTC
+    working_dir: /srv/grants
+    command: ["sh", "-c", "while true; do php scripts/send-notifications.php --reminders || true; sleep 60; done"]
+    volumes:
+      - ./src:/srv/grants/src:ro
+      - ./config:/srv/grants/config:ro
+      - ./scripts:/srv/grants/scripts:ro
+      - ./logs:/srv/grants/logs
+      - ./secrets/db-ca.crt:/run/grants/db-ca.crt:ro
+    networks: [backend]
+
+  # ---- the operator workstation: holds every secret and the whole repository so that the test suite, the seed scripts,
+  # the labs and the drills can run. NOT a service: it exists only under the "ops" profile (scripts start it on demand)
+  # and must not exist in production. Remove it with: docker compose --profile ops down
+  ops:
+    image: grants-web
+    profiles: ["ops"]
+    restart: "no"
+    user: "${APP_UID:-1000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: [./secrets/web.env, ./secrets/identity.env, ./secrets/notifier.env]
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: grants
+      DB_SSLROOTCERT: /run/grants/db-ca.crt
+      FIELD_KEY_FILE: /run/grants/field.key
+      ACTOR_KEY_FILE: /run/grants/actor.key
+      LOG_DIR: /srv/grants/logs
+      TZ: UTC
+    working_dir: /srv/grants
+    command: ["sleep", "infinity"]
+    volumes:
+      - ./public:/srv/grants/public:ro
+      - ./identity:/srv/grants/identity:ro
+      - ./src:/srv/grants/src:ro
+      - ./templates:/srv/grants/templates:ro
+      - ./config:/srv/grants/config:ro
+      - ./scripts:/srv/grants/scripts:ro
+      - ./database:/srv/grants/database:ro
+      - ./tests:/srv/grants/tests:ro
+      - ./logs:/srv/grants/logs
+      - ./secrets/field.key:/run/grants/field.key:ro
+      - ./secrets/actor.key:/run/grants/actor.key:ro
+      - ./secrets/db-ca.crt:/run/grants/db-ca.crt:ro
+      - ./secrets/demo-credentials.txt:/run/grants/demo-credentials.txt:ro
+      - ./secrets/demo-totp.txt:/run/grants/demo-totp.txt:ro
+    networks: [backend, identitynet]
+
+  # ---- log shipping: copies the PostgreSQL log (with pgaudit records) and the application error log into an
+  # append-only, hash-chained archive on a volume that nothing else can write. No network, no secrets, no database access.
+  # In production this runs on a SEPARATE HOST that only receives the stream; here it is a separate container with
+  # read-only views of the sources, so a compromised database or web process cannot rewrite what was already shipped.
+  logship:
+    image: grants-web
+    restart: unless-stopped
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    tmpfs: [/tmp]
+    cap_add: [DAC_READ_SEARCH]       # read the 0640 PostgreSQL log; it can write only its own archive volume
+    security_opt: ["no-new-privileges:true"]
+    entrypoint: ["php", "/srv/ship/logship.php", "run"]
+    environment:
+      TZ: UTC
+    volumes:
+      - ./scripts/logship.php:/srv/ship/logship.php:ro
+      - dblogs:/in/db:ro
+      - ./logs/php-error.log:/in/app/php-error.log:ro
+      - ./logs/app-error.log:/in/app/app-error.log:ro
+      - shipped:/out
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+
+volumes:
+  dbdata:
+  dblogs:          # PostgreSQL JSON log (written by the db, read by logship)
+  shipped:         # the tamper-evident archive (written ONLY by logship)
+
+networks:
+  backend:
+  # web <-> identity only: the identity service is not reachable from anything else and is never published.
+  identitynet:
+    internal: true

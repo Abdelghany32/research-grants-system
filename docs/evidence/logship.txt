@@ -1,0 +1,37 @@
+AUDIT AND LOG SHIPPING - 2026-11-17T20:19:49Z (UTC)
+
+== pgaudit
+PASS  pgaudit is preloaded by the server
+PASS  the server runs with pgaudit.log = ddl, role, write (command line, so it cannot drift)
+PASS  the superuser logs everything (pgaudit.log = all)
+PASS  the DDL is in the shipped archive (CREATE TABLE)
+PASS  the write is in the shipped archive (INSERT)
+PASS  the superuser's READ is in the shipped archive (SELECT)
+  sample: 2026-11-17 20:19:49.500 [4011] postgres@grants LOG: AUDIT: SESSION,2,1,WRITE,INSERT,,,INSERT INTO logship_probe_1794946789 VALUES (1),<not logged> application_name=psql
+
+== the archive
+  OK: 42624 records, chain intact, head e8bd7e88cd7315b485c10bf76b3de64c4877cf9c674ec22edca36fd6d7f1a35f
+PASS  the hash chain verifies
+  anchor 42624:e8bd7e88cd7315b485c10bf76b3de64c4877cf9c674ec22edca36fd6d7f1a35f   (kept outside the shipper: docs/evidence/logship-anchor.txt)
+  edit record 3:    BROKEN at record 3: the archive was changed, reordered or truncated here
+PASS  an edited record is detected
+  remove record 5:  BROKEN at record 5: the archive was changed, reordered or truncated here
+PASS  a removed record is detected
+  swap 7 and 8:     BROKEN at record 7: the archive was changed, reordered or truncated here
+PASS  two swapped records are detected
+  cut off the end:  OK: 42621 records, chain intact, head 3b31774dfffad468edb3f11f6a13f6cc6ba45082f04fea8466355ed76f5fdbf1
+PASS  (the chain alone cannot see a cut-off tail ...)
+  ... with the anchor: BROKEN: the anchored record 42624:e8bd7e88cd7315b485c10bf76b3de64c4877cf9c674ec22edca36fd6d7f1a35f is not in the archive (it was truncated or rewritten)
+PASS  (... but the anchor, kept elsewhere, proves it was cut off)
+
+== who can write the archive
+PASS  the shipper has no network (network mode none)
+PASS  the shipper's root file system is read-only
+PASS  the shipper holds no secret (no password or key variable)
+PASS  the shipper cannot modify the database log it reads
+PASS  the shipper cannot modify the application log it reads
+PASS  the database container cannot see the archive
+PASS  the web container cannot see the archive
+PASS  the database cannot rewrite its own shipped records (it has no write access to the archive volume)
+
+SUMMARY: 20 checks passed, 0 failed

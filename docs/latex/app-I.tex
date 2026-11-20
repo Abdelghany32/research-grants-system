@@ -1,0 +1,28 @@
+%% Appendix I: team organisation
+\appx{I}{Team Organisation}
+The group has five members. The team agreed the following split into five work areas. Every member also takes part in design, implementation, testing and documentation, verifies a \emph{different} member's area at each milestone, and must be able to explain the whole system in the individual oral defence (assignment rules 3 and 4). The cells marked \textcolor{amber}{\textbf{[to be filled in]}} are for each member to complete with their real contribution; they are deliberately not inferred from the repository.
+\tcap{Work areas, members and report sections}
+\begin{center}\scriptsize
+\begin{tabularx}{\linewidth}{@{}L{2.3cm}L{2.35cm}YL{2.5cm}L{2.2cm}@{}}
+\toprule\textbf{Member} & \textbf{Area} & \textbf{Scope to master} & \textbf{Report sections} & \textbf{Detailed contribution}\\\midrule
+Imane HABBANI & \textbf{A} Schema and data integrity & Tables, constraints, composite foreign keys, guard triggers (including review deadlines), exact money, ERD, classification and CIA, owner-level guard checks & 3, 5, 6 & \textcolor{amber}{[to be filled in]}\\
+Hassan ELGHOMRI & \textbf{B} Authentication and application & Argon2id, sessions, CSRF, request pipeline, per-address throttle and pair lock (F02--F05), second factor (TOTP), headers, plaintext/encryption/hashing comparison & 4, 8 & \textcolor{amber}{[to be filled in]}\\
+Abir EL HANAFI & \textbf{C} Authorization, RLS and least privilege & Roles, grants, policies, the actor token and the audit door (O02, O03), both access-control matrices, privilege tests, what the web account can no longer do & 7, 9, 10 & \textcolor{amber}{[to be filled in]}\\
+Ahlame EsSEBBANE & \textbf{D} Transactions, audit, backup and hardening & \code{record\_decision()} and concurrency, audit design and CSV export, e-mail outbox and notifier, CI, backup and recovery drill, hardening before/after, incident 1 & 14, 15, 16, 17 (incident 1) & \textcolor{amber}{[to be filled in]}\\
+Abdelghany AIT OUAZGHOUR & \textbf{E} Vulnerabilities, remediation and security operations & Penetration test and retest of F01--F05, O02 and O03, SQL-injection laboratory, key management and custody, incident 2 before and after, final assessment & 11, 12, 13, 17 (incident 2), 18, 19 & \textcolor{amber}{[to be filled in]}\\
+\bottomrule\end{tabularx}\end{center}
+Sections 1, 2, 20, 21 and 22 (cover, summary, conclusion, references, appendices) belong to everyone.
+
+\subsection*{Peer verification}
+The verifier re-runs the owner's tests from a clean checkout, reads the code without the owner present and writes one question the owner must answer.
+\begin{center}\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule\textbf{Milestone} & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} & \textbf{E}\\\midrule
+1 First slice & B & C & D & E & A\\
+2 Workflow & C & D & E & A & B\\
+3 Security operations & D & E & A & B & C\\
+4 Remediation and retest & E & A & B & C & D\\
+\bottomrule\end{tabular}\end{center}
+For the jury package (milestone 5) everyone rehearses \code{docs/DEMO.md} once in each speaking role.
+\subsection*{Demonstration and defence}
+The demonstration plan (\code{docs/DEMO.md}) is database-first, as rule 1 requires: roles and privileges, a refused privileged statement, the SQL-injection laboratory, the retest, the award, the second factor, the key rotation, incident 2 and the recovery drill, with the browser used only to show the controls at work. \code{docs/DEFENSE.md} holds short answers tied to files, for the five common questions and for each area.

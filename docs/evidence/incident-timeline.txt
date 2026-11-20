@@ -1,0 +1,32 @@
+SIMULATED INCIDENT - run started 2026-11-17T20:55:53Z (UTC)
+Proposal #1, review #1 (assigned to salma.tazi).
+
+== Record state before
+ proposal |    status    | requested_amount | outcome | awarded_amount | call | remaining_budget 
+----------+--------------+------------------+---------+----------------+------+------------------
+        1 | under_review |        180000.00 |         |                |    1 |        600000.00
+(1 row)
+
+== Step 1: karim.ouazzani (reviewer, NOT assigned) requests /reviews/1
+  login karim.ouazzani@uni.example -> HTTP 303
+  GET /reviews/1 -> HTTP 404
+  GET /officer/proposals/1 -> HTTP 403
+== Step 2: nadia.berrada (officer) records a legitimate award of 150,000.00
+  login nadia.berrada@uni.example -> HTTP 303 (password), then HTTP 303 (second factor)
+  POST /officer/proposals/1/decision -> HTTP 303
+
+== Record state after
+ proposal |  status  | requested_amount | outcome  | awarded_amount | call | remaining_budget 
+----------+----------+------------------+----------+----------------+------+------------------
+        1 | approved |        180000.00 | approved |      150000.00 |    1 |        450000.00
+(1 row)
+
+== Events since 2026-11-17T20:55:53Z, read through the grants_auditor account (audit_timeline view)
+connected as grants_auditor to grants
+id    time (UTC)              actor                        role       proved action                 resource      outcome  request  details
+96    2026-11-17 20:55:54.223 karim.ouazzani@uni.example   reviewer   yes    auth.login             user #4       success  6524418b {"method": "password"}
+97    2026-11-17 20:55:54.269 karim.ouazzani@uni.example   reviewer   yes    review.view            review #1     denied   bcd42268 {"reason": "not_visible"}
+98    2026-11-17 20:55:54.305 karim.ouazzani@uni.example   reviewer   yes    request.forbidden      -             denied   92f1bb6c {"path": "/officer/proposals/1", "method": "GET", "required": "proposal.read_submitted"}
+99    2026-11-17 20:55:54.582 nadia.berrada@uni.example    officer    yes    auth.login             user #5       success  ebc73d33 {"method": "totp"}
+100   2026-11-17 20:55:54.632 nadia.berrada@uni.example    officer    yes    proposal.view          proposal #1   success  e254c913 {"with_reviews": 1}
+101   2026-11-17 20:55:54.666 nadia.berrada@uni.example    officer    yes    decision.record        proposal #1   success  defcb897 {"outcome": "approved", "currency": "MAD", "decision_id": 3, "awarded_amount": "150000.00", "remaining_after": "450000.00"}

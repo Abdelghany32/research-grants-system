@@ -1,0 +1,39 @@
+%% Appendix G: traceability matrix
+\appx{G}{Requirement-to-Evidence Traceability Matrix}
+Every requirement of the assignment is traced to the report section that answers it, the implementation that provides it and the evidence that proves it. Evidence files are under \code{docs/evidence/}; test names are those printed by \code{scripts/test.sh}.
+\tcap{Requirement-to-evidence traceability matrix}
+\begin{center}\scriptsize
+\begin{longtable}{@{}L{3.6cm}L{1.3cm}L{4.6cm}L{6.4cm}@{}}
+\toprule\textbf{Requirement} & \textbf{Section} & \textbf{Implementation} & \textbf{Evidence}\\\midrule\endhead
+Phase 1: ERD, schema, tables, classification, CIA, threat model & \ref{sec:er}, \ref{sec:class}, \ref{sec:threat} & \code{database/02\_schema.sql}, \code{docs/ERD.md} & Figures~\ref{fig:er}, \ref{fig:threatmap}; FLOW suite; \code{owner\_guards.sql}\\
+Phase 2: users, roles, GRANT/REVOKE, privilege testing, matrix & \ref{sec:rbac}, \ref{sec:lp} & \code{01\_roles.sql}, \code{03\_rls.sql}, \code{04\_grants.sql}, \code{Policy.php} & RBAC and RLS suites; \code{privileges.txt}; Figure~\ref{fig:privileges}\\
+Phase 3: login, password hashing, sessions, logout, failed attempts, second factor & \ref{sec:auth} & \code{Authenticator.php}, \code{Totp.php}, \code{Session.php}, \code{Csrf.php}, \code{08\_mfa.sql} & AUTH and MFA suites; \code{auth-retest.json}; Figures~\ref{fig:loginflow}, \ref{fig:mfaflow}, \ref{fig:shot-throttle}, \ref{fig:shot-mfa}\\
+Plaintext vs encryption vs hashing vs secure hashing & \ref{sec:auth} & Argon2id; field encryption & Table in Section~\ref{sec:auth}; test \emph{passwords are stored as Argon2id hashes}\\
+Phase 4: vulnerability, impact, root cause, mitigation, verification & \ref{sec:vuln}, \ref{sec:sqli} & \code{scripts/sqli-demo.php}; F01--F05 & \code{sqli-demo.txt}; \code{pentest-after/}; Figures~\ref{fig:sqlibefore}, \ref{fig:beforeafter}\\
+Phase 5: prepared statements, validation, error handling, least privilege & \ref{sec:sqli} & \code{GrantQueries.php}, \code{Database.php}, \code{Money.php} & \code{sqli-demo.txt} (same payloads after the fix); test \emph{RLS search with an apostrophe}\\
+Phase 6: passwords, financial data, encryption, at rest, in transit, key management & \ref{sec:data} & \code{FieldCipher.php}, \code{rotate-field-key.sh}, \code{backup-key.sh}, TLS configuration & DATA suite; \code{key-rotation.txt}; \code{backup-key-custody.txt}; Figure~\ref{fig:keylife}\\
+Phase 7: login, failed login, access, modification, deletion, administrative actions; who, what, when, resource, success & \ref{sec:audit} & \code{src/Audit}, \code{audit\_append()}, \code{audit\_timeline}, CSV export & AUDIT, IDENT and EXPORT suites; \code{incident-timeline.txt}; Figures~\ref{fig:auditpaths}, \ref{fig:shot-audit}\\
+Phase 8: backup, procedure, controlled loss, restore, verify, document & \ref{sec:backup} & \code{backup.sh}, \code{restore.sh}, \code{recovery-drill.sh}, \code{verify\_restore.php} & \code{recovery-drill.txt}; Figures~\ref{fig:backupflow}, \ref{fig:recovery}\\
+Phase 9: eleven hardening items, before/after, justification & \ref{sec:harden} & \code{docker/}, \code{compose.yaml}, \code{hardening.conf}, \code{pg\_hba.conf} & \code{hardening.txt}; \code{privileges.txt}\\
+Phase 10: incident, logs, timeline, failed controls, corrective actions & \ref{sec:incident} & \code{incident-demo.sh}, \code{incident-privileged.sh} & \code{incident-timeline.txt}; \code{incident-privileged.txt}; Figures~\ref{fig:swimlane}, \ref{fig:inclog}\\
+Final assessment: authentication & \ref{sec:final} & as above & \code{auth-retest.json}\\
+Final assessment: authorization and least privilege & \ref{sec:final} & as above; actor token \code{06\_identity\_and\_audit.sql} & \code{privileges.txt}; \code{deep-db.json} (DB03, DB04); IDENT suite\\
+Observations O02 and O03 (identity proof, audit forgery) & \ref{sec:lp}, \ref{sec:vuln}, \ref{sec:incident} & \code{ActorToken.php}, \code{audit\_append()} & \code{deep-db.json}; \code{incident-privileged.txt} against \code{incident-privileged-before-binding.txt}; Figures~\ref{fig:identity}, \ref{fig:swimlane}\\
+Observation O01 (hash helper), identity service apart from the web front end & \ref{sec:split}, \ref{sec:lp}, \ref{sec:incident} & \code{src/Identity/}, \code{identity/}, \code{10\_identity\_split.sql}, \code{04\_grants.sql} & SPLIT suite; \code{isolation.txt}; \code{incident-frontend.txt}; Figures~\ref{fig:isolation}, \ref{fig:incfront}\\
+Phishing-resistant second factor (WebAuthn) & \ref{sec:webauthn} & \code{WebAuthn.php}, \code{Cbor.php}, \code{11\_webauthn.sql}, \code{webauthn.js} & WEBAUTHN suite; screenshots 31--33; Figure~\ref{fig:shot-keys}\\
+Audit of privileged sessions and shipped, tamper-evident logs & \ref{sec:logship} & \code{docker/db/Dockerfile}, \code{12\_pgaudit.sql}, \code{scripts/logship.php} & \code{logship.txt}; Figure~\ref{fig:logship}\\
+Opening the system for manual testing & App.~A & \code{scripts/manual-test.sh} & prints accounts, current codes and a checklist\\
+Review deadlines enforced by the database & \ref{sec:lp} & \code{07\_review\_deadlines.sql} & DEADLINE suite; Figure~\ref{fig:deadline}\\
+Auditor CSV export & \ref{sec:audit} & \code{AuditController::export} & EXPORT suite; Figure~\ref{fig:shot-audit}\\
+E-mail notifications & \ref{sec:data} & \code{09\_notifications.sql}, \code{src/Mail}, \code{notifier} service & MAIL suite; Figure~\ref{fig:outbox}\\
+Continuous integration & App.~A & \code{.github/workflows/ci.yml}, \code{dependabot.yml} & Figure~\ref{fig:ci}; configured, runs on every push and pull request\\
+Final assessment: SQL injection & \ref{sec:final} & as above & \code{sqli-demo.txt}\\
+Final assessment: data protection & \ref{sec:final} & as above & \code{key-rotation.txt}; \code{backup-key-custody.txt}\\
+Final assessment: auditing and monitoring & \ref{sec:final} & as above & \code{incident-privileged.txt}\\
+Final assessment: backup, hardening, incident & \ref{sec:final} & as above & \code{recovery-drill.txt}; \code{hardening.txt}\\
+Deliverable 1: working system & App.~A & \code{scripts/setup.sh} & \code{clean-room.txt}: 204 files, no secrets, setup and all tests pass in 52 s\\
+Deliverable 2: source, SQL, scripts, configuration, setup instructions & App.~A, C & repository & \code{README.md}; \code{scripts/}; \code{database/}\\
+Deliverable 3: this report in the 22-section order & all & \code{docs/latex/report.tex} & the table of contents\\
+Deliverables 4 and 5: demonstration and defence & App.~I & \code{docs/DEMO.md}, \code{docs/DEFENSE.md} (local files) & database-first demonstration plan\\
+Rules 7--9: explain root cause, justify decisions, explain evidence & \ref{sec:vuln}, \ref{sec:sqli} & every figure and table caption & captions state the claim each piece of evidence supports\\
+\bottomrule\end{longtable}\end{center}

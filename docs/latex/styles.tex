@@ -1,0 +1,24 @@
+% Shared colours and TikZ styles for the report figures.
+\definecolor{indigo}{HTML}{4F46E5}
+\definecolor{ink}{HTML}{0F172A}
+\definecolor{codebg}{HTML}{F4F6FB}
+\definecolor{danger}{HTML}{B42318}
+\definecolor{okgreen}{HTML}{1B7F4B}
+\definecolor{amber}{HTML}{B45309}
+\definecolor{slate}{HTML}{475569}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc,decorations.pathreplacing}
+\tikzset{
+ box/.style={draw=indigo!65,rounded corners=2.5pt,fill=codebg,align=center,inner sep=3pt,font=\scriptsize,minimum height=6.5mm},
+ boxr/.style={box,fill=danger!8,draw=danger!70},
+ boxg/.style={box,fill=okgreen!9,draw=okgreen!70},
+ boxa/.style={box,fill=amber!11,draw=amber!75},
+ boxi/.style={box,fill=indigo!10,draw=indigo!80},
+ zone/.style={draw=indigo!55,dashed,rounded corners=5pt,thick},
+ arr/.style={-{Stealth[length=2mm]},thick,draw=ink!70},
+ darr/.style={arr,dashed},
+ rarr/.style={arr,draw=danger!80},
+ garr/.style={arr,draw=okgreen!80},
+ lbl/.style={font=\tiny,fill=white,inner sep=1pt,align=center,text=ink},
+ cp/.style={font=\tiny,text=slate,align=center},
+ hd/.style={font=\scriptsize\bfseries,text=indigo},
+}

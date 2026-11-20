@@ -1,0 +1,123 @@
+SIMULATED INCIDENT 3: COMPROMISED WEB FRONT END - started 2026-11-17T19:48:00Z (UTC) - live stack
+
+################ PART 1 - setup: a legitimate user is signed in (the victim) ################
+  amina.elidrissi signs in through the web front end -> HTTP 303
+
+################ PART 2 - the attacker's session (code execution inside the web container) ################
+COMPROMISED FRONT END (pid 229, application_name=compromised-frontend)
+
+Phase A - what this process holds
+  identity API key (the client of the identity service must have it)           -> present
+  actor-binding key file                                                       -> not present in this container
+  audit-writer database password                                               -> not in the environment
+  identity database password                                                   -> not in the environment
+  notifier database password                                                   -> not in the environment
+  operator tools (tests, scripts, database scripts)                            -> not mounted
+
+Phase B - the web database account (finding O01 closed)
+  read a password hash through the credential helper                           -> REFUSED 42501
+  read password hashes directly                                                -> REFUSED 42501
+  read the identity session table (handles, encrypted data)                    -> REFUSED 42501
+  read or reset anyone's second factor                                         -> REFUSED 42501
+  clear the sign-in throttle                                                   -> REFUSED 42501
+  read the audit trail / write an audit event                                  -> REFUSED 42501
+  read any proposal without a valid actor token (no identity = no rows)        -> allowed (0 row(s))
+
+Phase C - what the identity service lets it do (it holds the API key)
+  ask who a session belongs to, with no session handle                         -> null, token: none
+  ask with an invented session handle                                          -> null, token: none
+  write an audit event "proved" for the officer, with no session               -> accepted but recorded as UNVERIFIED (named, not proved)
+  call a method outside the whitelist                                          -> HTTP/identity says: bad_method
+
+Phase D - password guessing through the service (the officer needs a password AND a code)
+  25 guesses from one address                                                  -> {"denied":20,"throttled":5}
+  25 guesses, each claiming a different client address                         -> {"denied":25}   <- RESIDUAL: the address is reported by the front end
+
+Phase E - sessions: the process can see the handles of users signed in RIGHT NOW
+  live session handles readable in the PHP session files                       -> 24
+  use the handle of salma.tazi@uni.example (reviewer)                          -> token issued; row-level security shows exactly 2 proposal(s): what that user could see
+  use the handle of karim.ouazzani@uni.example (reviewer)                      -> token issued; row-level security shows exactly 2 proposal(s): what that user could see
+  use the handle of amina.elidrissi@uni.example (researcher)                   -> token issued; row-level security shows exactly 3 proposal(s): what that user could see
+  use the handle of karim.ouazzani@uni.example (reviewer)                      -> token issued; row-level security shows exactly 2 proposal(s): what that user could see
+  use the handle of amina.elidrissi@uni.example (researcher)                   -> token issued; row-level security shows exactly 3 proposal(s): what that user could see
+  use the handle of youssef.benali@uni.example (researcher)                    -> token issued; row-level security shows exactly 3 proposal(s): what that user could see
+
+session closed
+
+################ PART 3 - the investigation (evidence only) ################
+
+---- 3a. Application audit trail since the alert ----
+connected as grants_auditor to grants
+id    time (UTC)              actor                        role       proved action                 resource      outcome  request  details
+417   2026-11-17 19:48:01.295 amina.elidrissi@uni.example  researcher yes    auth.login             user #1       success  82f025a2 {"method": "password"}
+418   2026-11-17 19:48:01.546 nadia.berrada@uni.example    officer    no     decision.record        proposal #1   denied   99999999 {"probe": "compromised-frontend"}
+419   2026-11-17 19:48:01.696 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+420   2026-11-17 19:48:01.846 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+421   2026-11-17 19:48:02.011 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+422   2026-11-17 19:48:02.158 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+423   2026-11-17 19:48:02.307 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+424   2026-11-17 19:48:02.308 nadia.berrada@uni.example    officer    no     auth.lockout           user #5       success  99999999 {"scope": "account_and_address", "minutes": 15}
+425   2026-11-17 19:48:02.452 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+426   2026-11-17 19:48:02.593 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+427   2026-11-17 19:48:02.744 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+428   2026-11-17 19:48:02.896 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+429   2026-11-17 19:48:03.031 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+430   2026-11-17 19:48:03.175 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+431   2026-11-17 19:48:03.327 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+432   2026-11-17 19:48:03.466 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+433   2026-11-17 19:48:03.618 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+434   2026-11-17 19:48:03.777 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+435   2026-11-17 19:48:03.928 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+436   2026-11-17 19:48:04.069 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+437   2026-11-17 19:48:04.207 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+438   2026-11-17 19:48:04.373 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+439   2026-11-17 19:48:04.510 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"scope": "account_and_address", "reason": "account_locked"}
+440   2026-11-17 19:48:04.511 (not signed in)              -          no     auth.throttle          -             success  99999999 {"minutes": 10, "failures": 20}
+441   2026-11-17 19:48:04.511 nadia.berrada@uni.example    officer    no     auth.suspicious_volume user #5       denied   99999999 {"note": "many addresses may be guessing this account", "failures_la
+442   2026-11-17 19:48:04.695 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+443   2026-11-17 19:48:04.838 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+444   2026-11-17 19:48:04.999 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+445   2026-11-17 19:48:05.151 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+446   2026-11-17 19:48:05.286 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+447   2026-11-17 19:48:05.427 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+448   2026-11-17 19:48:05.567 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+449   2026-11-17 19:48:05.718 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+450   2026-11-17 19:48:05.870 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+451   2026-11-17 19:48:06.023 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+452   2026-11-17 19:48:06.167 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+453   2026-11-17 19:48:06.312 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+454   2026-11-17 19:48:06.451 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+455   2026-11-17 19:48:06.603 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+456   2026-11-17 19:48:06.744 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+457   2026-11-17 19:48:06.889 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+458   2026-11-17 19:48:07.034 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+459   2026-11-17 19:48:07.183 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+460   2026-11-17 19:48:07.329 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+461   2026-11-17 19:48:07.468 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+462   2026-11-17 19:48:07.623 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+463   2026-11-17 19:48:07.767 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+464   2026-11-17 19:48:07.923 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+465   2026-11-17 19:48:08.060 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+466   2026-11-17 19:48:08.212 nadia.berrada@uni.example    officer    no     auth.login             user #5       denied   99999999 {"reason": "bad_password"}
+
+---- 3b. Reading of the evidence ----
+ WHAT HAPPENED   Code ran inside the web front end. It could not read a single password hash, the identity table, the actor key, the
+                 audit-writer or notifier passwords, or write an audit event: none of them is in that container or reachable with its
+                 database account. It could use the identity service's API (it holds the API key) and see the handles of users
+                 signed in at that moment.
+ CONTROLS THAT HELD
+   * No hashes (O01 closed), no identity secrets, no forged "proved" audit events, no token for a user without a live session.
+   * The identity service refuses unsigned calls and methods outside its whitelist; row-level security still limits a stolen
+     session to that one user's rows.
+ WEAKNESSES THAT REMAIN (stated, not hidden)
+   * Sessions: the process can act as the users who are signed in right now (it sees their handles), until they log out or expire.
+     Before the split it could act as ANY user.
+   * Guessing: the client address is reported by the front end, so a compromised front end can spread guesses over many fake
+     addresses and avoid the per-address throttle. Officers and auditors still need the second factor; researchers and reviewers
+     are exposed to slow, Argon2-limited guessing. Mitigation to add: an account-level slow-down independent of the reported address.
+   * The compromised process still sees plaintext passwords as users type them (it terminates the login form).
+ CORRECTIVE ACTIONS
+   1. Rotate IDENTITY_API_KEY and the web database password; end all sessions (DELETE FROM identity_sessions).
+   2. Find the entry point (web logs, PostgreSQL log, container image provenance) and rebuild the front end from a clean image.
+   3. Add an account-level slow-down and alerting on many failures for one account (auth.suspicious_volume already fires at 20/hour).
+   4. Phishing-resistant second factor (WebAuthn) and short session lifetimes for privileged roles.

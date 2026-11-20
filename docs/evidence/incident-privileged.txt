@@ -1,0 +1,94 @@
+SIMULATED INCIDENT 2: STOLEN SERVICE CREDENTIAL - started 2026-11-17T19:47:55Z (UTC) - database grants_test (disposable)
+
+################ PART 1 - the attacker's session (what actually happened) ################
+ATTACKER SESSION as grants_app (pid 2652), application_name=stolen-credential
+
+Phase A - reconnaissance with the stolen credential
+  read the audit trail                                               -> REFUSED 42501
+  read password hashes                                               -> REFUSED 42501
+  list every account (e-mail, name, role)                            -> allowed (8 row(s) returned)
+  read login-failure records                                         -> REFUSED 42501
+  read the actor-binding key                                         -> REFUSED 42501
+
+Phase B - claim an officer identity (findings O02: now refused)
+  read every submitted proposal with the old app.user_id claim       -> allowed (0 row(s) returned)
+  read every submitted proposal with a self-signed actor token       -> allowed (0 row(s) returned)
+
+Phase C - attempts to move money (findings F01 and O02)
+  insert a lone decision row                                         -> REFUSED 42501
+  lower the call balance on its own                                  -> REFUSED 42501
+
+Phase D - the one door that used to be open: record_decision() with the claimed identity
+  award 1.00 through the function with the forged token              -> REFUSED 42501
+
+Phase E - covering tracks, and forging a record (finding O03: now refused)
+  edit audit events                                                  -> REFUSED 42501
+  delete audit events                                                -> REFUSED 42501
+  truncate audit events                                              -> REFUSED 42501
+  forge an audit event that frames a researcher (direct INSERT)      -> REFUSED 42501
+  forge the same event through audit_append() with a forged token    -> REFUSED 42501
+  forge it through audit_append() with no token at all               -> REFUSED 42501
+
+session closed
+
+################ PART 2 - the investigation (evidence only) ################
+
+---- 2a. Application audit trail since the alert (auditor account, audit_timeline view) ----
+connected as grants_auditor to grants_test
+id    time (UTC)              actor                        role       proved action                 resource      outcome  request  details
+
+---- 2b. Anomaly query: events the web application cannot have written ----
+     (every event written by the application carries a request correlation id AND a source address; this run should return none)
+connected as grants_auditor to grants_test
+id    time (UTC)              actor                        role       proved action                 resource      outcome  request  details
+
+---- 2c. PostgreSQL server log - read from the SHIPPED archive (off the database host, hash-chained): who connected, from where, what the server refused ----
+connection of interest: pid 2652 (application_name=stolen-credential is not a name the web application uses)
+2026-11-17 19:47:57.406 [2652] @ LOG: connection received: host=172.18.0.6 port=48960
+2026-11-17 19:47:57.411 [2652] grants_app@grants_test LOG: connection authenticated: identity="grants_app" method=scram-sha-256 (/var/lib/postgresql/18/docker/pg_hba.conf:12)
+2026-11-17 19:47:57.411 [2652] grants_app@grants_test LOG: connection authorized: user=grants_app database=grants_test application_name=stolen-credential SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_
+2026-11-17 19:47:57.413 [2652] grants_app@grants_test ERROR: permission denied for table audit_events | STATEMENT: SELECT * FROM audit_events application_name=stolen-credential
+2026-11-17 19:47:57.413 [2652] grants_app@grants_test ERROR: permission denied for table users | STATEMENT: SELECT password_hash FROM users application_name=stolen-credential
+2026-11-17 19:47:57.413 [2652] grants_app@grants_test ERROR: permission denied for table login_failures | STATEMENT: SELECT * FROM login_failures application_name=stolen-credential
+2026-11-17 19:47:57.414 [2652] grants_app@grants_test ERROR: permission denied for table actor_key | STATEMENT: SELECT * FROM actor_key application_name=stolen-credential
+2026-11-17 19:47:57.456 [2652] grants_app@grants_test ERROR: permission denied for table decisions | STATEMENT: INSERT INTO decisions (proposal_id, outcome, awarded_amount, currency, decided_by) VALUE
+2026-11-17 19:47:57.457 [2652] grants_app@grants_test ERROR: permission denied for table grant_calls | STATEMENT: UPDATE grant_calls SET remaining_budget = remaining_budget - 1 WHERE id = (SELECT call
+2026-11-17 19:47:57.458 [2652] grants_app@grants_test ERROR: record_decision requires an active officer | STATEMENT: SELECT * FROM record_decision($1, 'approved', 1.00, 'unauthorised award by stolen c
+2026-11-17 19:47:57.458 [2652] grants_app@grants_test ERROR: permission denied for table audit_events | STATEMENT: UPDATE audit_events SET outcome = 'failure' WHERE action = 'decision.record' applicat
+2026-11-17 19:47:57.458 [2652] grants_app@grants_test ERROR: permission denied for table audit_events | STATEMENT: DELETE FROM audit_events WHERE action = 'decision.record' application_name=stolen-cre
+2026-11-17 19:47:57.458 [2652] grants_app@grants_test ERROR: permission denied for table audit_events | STATEMENT: TRUNCATE audit_events application_name=stolen-credential
+2026-11-17 19:47:57.458 [2652] grants_app@grants_test ERROR: permission denied for table audit_events | STATEMENT: INSERT INTO audit_events (actor_id, actor_role, action, resource_type, resource_id, o
+2026-11-17 19:47:57.459 [2652] grants_app@grants_test ERROR: an audit event needs a valid actor token | STATEMENT: SELECT audit_append('proposal.delete', 'proposal', $1, 'success', '{}'::jsonb, NULL, 
+2026-11-17 19:47:57.459 [2652] grants_app@grants_test ERROR: an audit event needs a valid actor token | STATEMENT: SELECT audit_append('proposal.delete', 'proposal', $1, 'success', '{}'::jsonb, NULL, 
+2026-11-17 19:47:57.459 [2652] grants_app@grants_test LOG: disconnection: session time: 0:00:00.053 user=grants_app database=grants_test host=172.18.0.6 port=48960 application_name=stolen-credential
+
+---- 2d. Reading of the evidence ----
+ WHAT HAPPENED   A session using the grants_app account, from the web container's network and with an application name the
+                 web application never uses, ran outside any HTTP request. It listed the accounts (the only thing it could
+                 read), claimed an officer identity in two ways, tried to move money, to award through the function, to
+                 erase its tracks and to forge audit records. NOTHING succeeded except the account listing.
+ WHEN / WHO      Times in 2c (UTC). Account: grants_app (the web service credential). Claimed identity: the officer account.
+ RESOURCES       users (e-mail, name, role: read). Nothing was changed; the audit trail (2a, 2b) contains no event from this session.
+ CONTROLS THAT HELD
+   * Identity is PROVED, not asserted (findings O02): neither the old app.user_id claim nor a self-signed actor token yields an
+     identity, so row-level security answers "no rows" and record_decision() refuses (42501). The key is not in the database
+     password's reach (secrets/actor.key is readable by the web process only; its copy in the database is owner-only).
+   * No audit forgery (finding O03): the web account has no INSERT on audit_events, audit_append() needs a valid actor token
+     for any named actor, and the audit-writer account (a different credential) cannot be used from this session.
+   * No partial award (F01), no hash or audit read, audit immutable (UPDATE/DELETE/TRUNCATE refused).
+   * Every refusal appears in the PostgreSQL log with user, database, time and the exact statement - this is how the
+     incident is investigated, because nothing reached the audit trail.
+ CONTROLS THAT FAILED / WEAK
+   * The attacker could still read the accounts table (e-mail, name, role) with the stolen credential: the web account needs
+     that read, and the credential helper still returns one password hash per e-mail address (observation O01).
+   * The attacker was only caught by the server log: nothing in the application audit trail shows an attempt. Alert on
+     'permission denied' lines for grants_app that do not match any HTTP request.
+   * Residual: an attacker who ALSO takes secrets/actor.key (that is, compromises the web process itself) can act as any user
+     again. Compare docs/evidence/incident-privileged-before-binding.txt, where the credential alone was enough.
+ CORRECTIVE ACTIONS
+   1. Rotate the grants_app password now; treat secrets/web.env as exposed and review who could read it. The actor key did not
+      leak in this scenario, but rotate it too if the web host is suspect (re-run scripts/db-apply.sh after replacing secrets/actor.key).
+   2. Alert on PostgreSQL 'permission denied' errors for grants_app and on application names the web application does not use.
+   3. Tighten pg_hba.conf to the web container address and add pgaudit for statement-level coverage.
+   4. Ship the PostgreSQL log to a separate host so the evidence survives a host compromise.
+   5. Next: split the web process into a front end and an audit/identity service so that one process does not hold every key.

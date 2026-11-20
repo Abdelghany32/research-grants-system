@@ -1,0 +1,47 @@
+# Secrets, keys, generated credentials, backups and logs never go to Git.
+/secrets/
+/backups/*
+!/backups/.gitkeep
+/logs/*
+!/logs/.gitkeep
+*.key
+*.pem
+*.dump
+*.gpg
+.env
+
+# local scratch
+/tmp/
+/output/
+
+# docs kept local only
+/docs/DEMO.md
+/docs/DEFENSE.md
+/docs/STATUS.md
+/docs/PROGRESS.md
+/docs/TEAM.md
+/docs/report*.md
+/docs/report-pages.json
+/docs/pentest/pages.json
+/docs/evidence/pentest/*
+!/docs/evidence/pentest/timing.svg
+/docs/evidence/INDEX.md
+/docs/evidence/clean-room.txt
+/docs/evidence/pentest-*.txt
+/docs/evidence/privileges.txt
+/docs/evidence/report-*
+/docs/evidence/ui-checks.json
+/docs/latex/*.aux
+/docs/latex/*.log
+/docs/latex/*.toc
+/docs/latex/*.lof
+/docs/latex/*.out
+/docs/latex/report.pdf
+
+# Python bytecode
+__pycache__/
+*.pyc
+/docs/latex/*.lot
+/docs/latex/*.fls
+/docs/latex/*.fdb_latexmk
+/docs/latex/*.synctex.gz

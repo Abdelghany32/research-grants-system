@@ -1,0 +1,11 @@
+# Keep the build tooling and the base images current: a pull request when a new version exists.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /docker/web
+    schedule:
+      interval: weekly

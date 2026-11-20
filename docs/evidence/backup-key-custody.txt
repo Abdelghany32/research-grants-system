@@ -1,0 +1,27 @@
+BACKUP-KEY CUSTODY - 2026-11-17T19:48:21Z (UTC) - run on a temporary copy of the keyring
+
+== 1. Start: the backup host holds both halves
+public key  : present
+private key : present on this host
+passphrase  : file present (secrets/gpg-passphrase) - the key is protected
+
+== 2. A decryption attempt without the passphrase fails (the key is protected)
+  gpg: public key decryption failed: No passphrase given
+  gpg: decryption failed: No passphrase given
+
+== 3. Export the protected private key to media held by the restore team, then remove it from this host
+private key exported to /tmp/tmp.Nx6M8WcoED/custody-key.asc (still passphrase-protected: yes)
+private key removed from this host (a verified copy exists in /tmp/tmp.Nx6M8WcoED/custody-key.asc). Backups can still be made; restores need an import.
+public key  : present
+private key : NOT on this host (restore needs: backup-key.sh import <file>)
+passphrase  : file present (secrets/gpg-passphrase) - the key is protected
+
+== 4. The host can still TAKE backups (public key only) ...
+  encryption works without the private key
+== ... but it can no longer READ them
+  gpg: public key decryption failed: No secret key
+  gpg: decryption failed: No secret key
+
+== 5. A restore happens on the restore workstation (clean keyring): the custodians bring the key file and the passphrase
+  gpg:   secret keys imported: 1
+  decrypted content on the workstation: secret

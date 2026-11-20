@@ -1,0 +1,18 @@
+\begin{tikzpicture}[font=\scriptsize]
+\node[hd,anchor=west] at (0,1.0) {Backup};
+\node[box,minimum width=2.4cm] (a1) at (1.2,-0.3) {live database\\grants};
+\node[box,minimum width=2.9cm] (a2) at (4.5,-0.3) {pg\_dump -Fc\\grants\_backup, socket};
+\node[boxi,minimum width=2.5cm] (a3) at (7.9,-0.3) {gpg --encrypt\\public key};
+\node[box,minimum width=3.4cm] (a4) at (11.5,-0.3) {backups/\textit{db-time}.dump.gpg\\+ .sha256 (no plaintext on disk)};
+\node[box,minimum width=2.6cm] (a5) at (14.9,-0.3) {+ .fieldkey.gpg\\separate file};
+\foreach \a/\b in {a1/a2,a2/a3,a3/a4,a4/a5} {\draw[arr] (\a)--(\b);}
+\node[hd,anchor=west] at (0,-1.55) {Controlled loss and recovery (recovery-drill.sh, on a disposable copy)};
+\node[box,minimum width=2.4cm] (r1) at (1.2,-2.85) {sha256 check};
+\node[box,minimum width=2.8cm] (r2) at (4.4,-2.85) {roles + database ACLs\\(01, 00 scripts)};
+\node[boxr,minimum width=3.0cm] (r3) at (7.9,-2.85) {DROP SCHEMA grants\\CASCADE: 0 tables};
+\node[boxg,minimum width=3.0cm] (r4) at (11.5,-2.85) {pg\_restore from the\\encrypted archive: 0.7 s};
+\node[boxg,minimum width=2.6cm] (r5) at (14.9,-2.85) {verify};
+\foreach \a/\b in {r1/r2,r2/r3,r3/r4,r4/r5} {\draw[arr] (\a)--(\b);}
+\node[cp,text width=14cm] at (8.2,-4.15) {verification: row counts and md5 of 6 tables $\cdot$ 35 privilege and policy lines identical $\cdot$ 7 behavioural checks (23 assertions) under the restricted accounts $\cdot$ comments decrypt with the separately stored key $\cdot$ key backup identical to the live keyring};
+\draw[arr] (a5.south) -- ++(0,-0.45) -| (r1.north) node[pos=0.25,lbl,above]{archive};
+\end{tikzpicture}

@@ -1,0 +1,69 @@
+%% Appendix F: screenshot gallery
+\appx{F}{Interface Screenshots (Supporting Evidence)}
+The interface is server-rendered HTML with one stylesheet. It supports keyboard use, colour-independent status badges and a responsive layout; 28 automated checks passed on 17 November 2026 (33 screenshots) (\code{ui-checks.json}): visible focus on every control, no horizontal scrolling at 390 px, a 200-character title that wraps, a decision screen that previews the resulting balance, denied events distinguishable without colour, the throttle behaviour, the second-factor flow, the extend-deadline form and the CSV export. The screenshots were taken on pristine demonstration data, so proposal \#1 appears as \emph{under review}. The very tall full-page captures (the audit timeline and the mobile layouts) are cropped to their top part in this gallery; the complete images are in \code{docs/evidence/screenshots/}. Each caption states what the image demonstrates; the technical evidence is in the sections above.
+\newcommand{\gshot}[2]{\begin{subfigure}[t]{.48\linewidth}\centering\fbox{\includegraphics[width=\linewidth,height=4.9cm,keepaspectratio]{#1}}\caption*{\scriptsize #2}\end{subfigure}}
+\newcommand{\mshot}[2]{\begin{subfigure}[t]{.23\linewidth}\centering\fbox{\includegraphics[width=\linewidth,height=5.2cm,keepaspectratio]{#1}}\caption*{\scriptsize #2}\end{subfigure}}
+\subsubsection*{F.1 Sign-in and researcher}
+\begin{figure}[H]\centering
+\gshot{01-login-desktop.png}{Sign-in: two labelled fields; the form reveals nothing about which accounts exist.}\hfill
+\gshot{02-login-keyboard-focus-desktop.png}{Keyboard focus is visible (3 px outline) on every control.}\\[3pt]
+\gshot{03-researcher-inbox-desktop.png}{Researcher inbox: open calls, own proposals, status and next action; counts cover only the researcher's own rows.}\hfill
+\gshot{04-researcher-denied-other-proposal-desktop.png}{Another researcher's proposal answers ``Not found'' with no hint that it exists; the attempt is audited.}\\[3pt]
+\gshot{05-researcher-form-validation-desktop.png}{Server-side validation errors sit next to the fields and typed values are preserved.}\hfill
+\gshot{07-researcher-decision-view-desktop.png}{The applicant sees the final decision and the office's message, never the reviews.}
+\caption{Researcher screens (desktop).}
+\end{figure}
+\begin{figure}[H]\centering
+\gshot{06-researcher-long-title-inbox-desktop.png}{A 200-character title with a 90-character unbroken word wraps without breaking the layout (desktop).}\\[3pt]
+\mshot{03-researcher-inbox-mobile.png}{Inbox on a phone: stacked records, no horizontal scroll.}\hfill
+\mshot{06-researcher-long-title-inbox-mobile.png}{A 200-character title with a 90-character unbroken word wraps.}\hfill
+\mshot{09-reviewer-workspace-mobile.png}{Reviewer workspace: panels stack on a narrow screen.}\hfill
+\mshot{11-officer-queue-mobile.png}{Officer queue: tables become labelled records.}
+\caption{Layout robustness: long title on the desktop, responsive layout at 390 px on a phone.}
+\end{figure}
+\subsubsection*{F.2 Reviewer and officer}
+\begin{figure}[H]\centering
+\gshot{08-reviewer-list-desktop.png}{A reviewer sees only their own assignments.}\hfill
+\gshot{09-reviewer-workspace-desktop.png}{Proposal summary beside score and confidential comments (stored encrypted).}\\[3pt]
+\gshot{10-reviewer-final-review-locked-desktop.png}{A submitted review is final: shown with no edit form.}
+\caption{Reviewer screens.}
+\end{figure}
+\begin{figure}[H]\centering
+\gshot{11-officer-queue-desktop.png}{Officer queue: submitted proposals with review progress.}\hfill
+\gshot{12-officer-decision-desktop.png}{Decision screen: requested and available funds, proposed award and resulting balance previewed in the browser and recalculated by the database function.}\hfill
+\gshot{13-officer-decision-unavailable-explained-desktop.png}{When no decision is possible the screen says why (no reviewer assigned yet).}\\[3pt]
+\gshot{14-officer-calls-desktop.png}{Call budgets and remaining balances, right-aligned with two decimals.}\hfill
+\mshot{12-officer-decision-mobile.png}{The decision screen on a phone.}
+\caption{Officer screens.}
+\end{figure}
+\subsubsection*{F.3 Auditor and security controls}
+\begin{figure}[H]\centering
+\gshot{15-auditor-timeline-desktop.png}{Read-only audit timeline: time, actor, action, resource and outcome with filters; no proposal text.}\hfill
+\gshot{16-auditor-filter-denied-desktop.png}{Filtering by outcome isolates denied events (here a researcher's refused read of proposal \#3).}\\[3pt]
+\gshot{17-auditor-timeline-grayscale-desktop.png}{With colour removed, denied events remain distinguishable (bold row, edge bar, square badge).}\hfill
+\gshot{18-login-throttled-desktop.png}{Finding F04: after 20 failed sign-ins from one address the 21st gets HTTP 429 and a message that names no account.}\\[3pt]
+\gshot{19-auditor-throttle-event-desktop.png}{The throttle is visible to the auditor as one \code{auth.throttle} event (20 failures, 10 minutes), not one per refused request.}\hfill
+\mshot{15-auditor-timeline-mobile.png}{Audit timeline on a phone.}
+\caption{Auditor screens and the throttle evidence.}
+\end{figure}
+\subsubsection*{F.4 Second factor, deadlines and export (release 2)}
+\begin{figure}[H]\centering
+\gshot{20-mfa-challenge-desktop.png}{After the password an auditor is asked for the second factor and is not signed in; the audit page stays closed.}\hfill
+\gshot{21-mfa-enrollment-desktop.png}{First sign-in of an officer without a second factor: the setup key and the otpauth address (redacted in this report).}\\[3pt]
+\gshot{22-mfa-recovery-codes-desktop.png}{After enrolment: eight single-use recovery codes, shown once (values redacted in this report; stored only as hashes).}\hfill
+\gshot{23-officer-extend-deadline-desktop.png}{Decision screen with an open review: the officer can extend its deadline, only forwards; overdue reviews carry a badge.}\\[3pt]
+\gshot{24-auditor-export-csv-desktop.png}{The audit timeline offers ``Export CSV'': the same filters, at most 5,000 rows, metadata only.}
+\caption{Screens added by release 2.}
+\end{figure}
+\subsubsection*{F.5 Security keys (release 3)}
+\begin{figure}[H]\centering
+\gshot{31-security-keys-empty-desktop.png}{The sign-in security page before any key is registered; it is reachable only by officers and auditors.}\hfill
+\gshot{32-security-keys-registered-desktop.png}{After registering a key (Chrome's virtual authenticator): listed by name, with the date and last use; no key material is shown.}\\[3pt]
+\gshot{33-security-key-signin-desktop.png}{The second-factor page offers \emph{Use security key} next to the one-time code.}
+\caption{Screens added by release 3.}\label{fig:shotgal-keys}
+\end{figure}
+\subsubsection*{F.6 Screens referred to from the report body}
+\shotfig{18-login-throttled-desktop.png}{.36}{Finding F04 seen in the browser: after 20 failed sign-ins from one address the 21st receives HTTP 429 and a message that names no account. The matching auditor view is Figure~\ref{fig:shot-audit}.}{shot-throttle}
+\shotpair{20-mfa-challenge-desktop.png}{21-mfa-enrollment-desktop.png}{Left: after the password, an auditor is asked for the second factor and is not signed in (the audit page stays closed). Right: an officer without a second factor is sent to set one up; the setup key shown is a lab value (redacted in this report).}{shot-mfa}
+\shotfig{04-researcher-denied-other-proposal-desktop.png}{.36}{Row-level security and the PHP ownership check seen from the user: a researcher who requests another researcher's proposal receives ``Not found'', the same page as for a missing record, and the attempt is audited (Section~\ref{sec:audit}).}{shot-denied}
+\shotpair{16-auditor-filter-denied-desktop.png}{19-auditor-throttle-event-desktop.png}{The auditor's view. Left: filtering by outcome isolates the denied events (a researcher's refused read of proposal \#3). Right: the login throttle appears as a single \code{auth.throttle} event, not one event per refused request. Both screens show metadata only.}{shot-audit}

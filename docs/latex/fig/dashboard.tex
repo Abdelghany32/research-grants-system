@@ -1,0 +1,12 @@
+\begin{tikzpicture}[font=\scriptsize]
+\newcommand{\tile}[6]{\node[draw=#6!70,fill=#6!8,rounded corners=3pt,minimum width=3.85cm,minimum height=1.75cm] at (#1,#2) {};
+ \node[font=\Large\bfseries,text=#6!85!black] at (#1,#2+0.32) {#3}; \node[font=\scriptsize\bfseries] at (#1,#2-0.15) {#4}; \node[font=\tiny,text=slate,text width=3.5cm,align=center] at (#1,#2-0.55) {#5};}
+\tile{1.95}{0}{78 / 851}{tests / assertions}{0 failed, real PostgreSQL, restricted accounts}{okgreen}
+\tile{6.05}{0}{13}{owner-level guard checks}{triggers, constraints, HMAC vectors; 0 failed}{okgreen}
+\tile{10.15}{0}{122 / 0}{resisted / findings}{black-box rerun, 17 Nov}{okgreen}
+\tile{14.25}{0}{F01--F05}{all remediated}{plus O02 and O03 closed for a stolen DB password}{okgreen}
+\tile{1.95}{-2.0}{0.8 s}{restore after loss}{8 checks, 28 assertions, key backup identical}{indigo}
+\tile{6.05}{-2.0}{41 s}{clean-room install}{177 files, no secrets, setup + all tests}{indigo}
+\tile{10.15}{-2.0}{30 / 24}{screenshots / UI checks}{0 failed; MFA, throttle, deadline, export}{indigo}
+\tile{14.25}{-2.0}{0}{pending package upgrades}{was 8 (web) and 5 (db); PostgreSQL 18.7}{indigo}
+\end{tikzpicture}
