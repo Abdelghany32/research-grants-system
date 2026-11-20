@@ -28,7 +28,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=sha,prefix=
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: docker/web
           push: true
@@ -42,7 +42,7 @@ jobs:
             type=raw,value=latest
             type=sha,prefix=
       - name: Database image (PostgreSQL 18 with pgaudit)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: docker/db
           push: true
