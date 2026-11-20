@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Shell scripts
         run: |
           for f in scripts/*.sh; do bash -n "$f"; done
@@ -47,7 +47,7 @@ jobs:
     needs: lint
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tools the scripts expect
         run: |
           sudo apt-get update -qq
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build the hardened web image with freshly pulled base layers
         run: docker build --pull -t grants-web:ci docker/web
       - name: "Report pending package upgrades (informational, base images move daily)"
